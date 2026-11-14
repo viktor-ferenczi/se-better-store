@@ -3,8 +3,8 @@
 Space Engineers client plugin for [Pulsar](https://github.com/SpaceGT/Pulsar) that replaces the
 screen of the Store block with one that is quicker to trade on.
 
-**Status:** designed, not implemented yet. [Docs/Design.md](Docs/Design.md) is the approved
-design. The plugin is not on PluginHub.
+**Status:** in development. [Docs/Design.md](Docs/Design.md) is the design. The plugin is not
+on PluginHub yet.
 
 ![The Store screen, as designed](Docs/mockup/store-screen.png "The Store screen, as designed")
 
@@ -42,3 +42,6 @@ Made from the [client plugin template](https://github.com/CometWorks/client-plug
 a `Directory.Build.props.user` file in the repository root (`setup.py` writes one for you).
 For testing, add the working copy to Pulsar as a development folder (start Pulsar with
 `-sources`, then use the Sources button).
+
+The trade planning (splitting an amount over rows of lots and single units, and over a ship's
+containers) has no game dependencies. Its tests run with `dotnet run` in the `Tests` folder.
