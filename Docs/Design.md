@@ -21,8 +21,10 @@ Facts from the decompiled game code, version 1.210.
   the blocks behind the Store grid's connectors that are connected and have trading turned on,
   plus the character.
 - One unit of a gas offer is 1,000 L. Buying gas fills one tank per request.
-- A Store's order for Hydrogen or Oxygen does nothing when a player sells to it. Only the mod
-  API's Gas type can be sold.
+- A Store's order for Hydrogen, Oxygen or another gas does nothing when a player sells to it:
+  the server's sell code handles physical items only.
+- The server drops some bad requests without an answer, for example a trade with a block of a
+  grid the player's faction owns but the player doesn't.
 - The vanilla screen takes its amounts as a typed number, and its only shortcut is one that sets
   the whole stock of the offer.
 
@@ -61,8 +63,7 @@ the player's money and the Store's stock. **You have** counts the item over the 
 Amounts show in kg below a tonne and in tonnes above it, pieces for components and tools, m³ for
 gas. Grid offers (ships for sale) stay as in vanilla: amount 1, with the preview.
 
-Orders for Hydrogen and Oxygen are left out of the Sell tab, since selling to them does nothing.
-Gas orders of the mod API are listed and drain the ship's tanks.
+Orders for gas and for ships are left out of the Sell tab, since selling to them does nothing.
 
 Double-click on a row trades the amount in the box, as the vanilla screen does.
 
@@ -79,8 +80,8 @@ For the selected row:
   10,000 m³, Half, Fill. A preset over the maximum is disabled.
 - **Price**: the lines the trade is made of, the total, and the balance after it.
 - **Goes into** (Buy) or **Taken from** (Sell): the containers or tanks the trade will use, with
-  the amount for each. Three lines, then it scrolls. An amount that doesn't fit, or isn't on
-  board, shows as a red line and disables the trade.
+  the amount for each. Three lines; with more containers the last line counts the rest. An
+  amount that doesn't fit, or isn't on board, shows as a red line and disables the trade.
 - **Buy** or **Sell**, with the amount and the total on the button.
 - **Buy what fits**, **Fill tanks** or **Sell all**: the same trade at the maximum, in one click.
 
@@ -103,7 +104,8 @@ The plugin plans the trade on the client and sends one request per container or 
 - **Gas** goes to the tanks of that gas with free room, in order.
 - The requests go out one after the other. Each waits for the result of the one before, because
   the server answers a request through one callback per Store block. If the server refuses one,
-  the plugin stops, shows the refusal, and reports what was traded up to there.
+  the plugin stops, shows the refusal, and reports what was traded up to there. It also stops
+  when the server gives no answer for 10 seconds.
 - After the last result the plugin reloads the Store's items and the balance.
 
 The plan is made from what the client knows of the inventories, and the server decides. A
@@ -132,12 +134,14 @@ A whole lot has to fit into one container, since it is one unit of one request.
 
 The client can't see it in the Store's items. Two sources, in this order:
 
-1. **The server says so.** Octahedron sends the plugin its lots (item and lot size) when a Store
-   opens. This is a change to Octahedron that is not made yet. It is the only way to recognize
-   an item sold in lots only.
+1. **The server says so.** When a player opens a Store, the server sends that Store's rows of
+   lots to the client as a mod message (`SendMessageTo`) on channel 14860. The message is UTF-8
+   text: the line `BetterStoreLots 1`, then one line `<store item id> <lot size>` for each row
+   of lots. After the first such message the plugin stops guessing for the rest of the session.
+   Octahedron doesn't send it yet. It is the only way to recognize an item sold in lots only.
 2. **A guess from the prices**, on servers that say nothing: two rows of the same item and the
-   same kind (both offers, or both orders), with one priced about 1,000 times the other, are a
-   unit row and a lot row.
+   same kind (both offers, or both orders), with one priced 800 to 1,250 times the other, are
+   a unit row and a lot row. A lone row on the other side priced like that lot row is one too.
 
 ## Configuration
 
