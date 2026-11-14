@@ -322,10 +322,11 @@ public class Plugin : IPlugin
             {
                 // The inventories the server lists for the player at the station's connector
                 var connector = Grid(StationName).GetFatBlocks<MyShipConnector>().First();
-                var listed = (List<long>)
-                    AccessTools
-                        .Method(typeof(MyShipConnector), "GetInventoryEntities")
-                        .Invoke(connector, new object[] { MySession.Static.LocalPlayerId });
+                var listed =
+                    (List<long>)
+                        AccessTools
+                            .Method(typeof(MyShipConnector), "GetInventoryEntities")
+                            .Invoke(connector, new object[] { MySession.Static.LocalPlayerId });
                 output.Add("LISTED " + listed.Count);
                 break;
             }
