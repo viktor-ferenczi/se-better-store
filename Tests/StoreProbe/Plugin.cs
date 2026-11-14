@@ -47,6 +47,9 @@ namespace BetterStoreProbe;
 //   inv                         INV <block>|<item>=<amount>;...  and  TANK <block> <liters>, then
 //                               INV Character|... for the player's suit
 //   lots                        sends the plugin the lot rows as a server would (channel 14860)
+//   standin <id>                lists a row of lots with Octahedron's stand-in item for it,
+//                               Component/OctahedronLot_<Type>_<Subtype>, as Octahedron's server
+//                               does with OctahedronMod
 //   use                         uses the Store as the F key does
 //   usespot                     SPOT x y z: the middle of the Store's use area, for aiming at it
 //   enabled <true|false>        sets the Better Store plugin's Enabled option
@@ -63,6 +66,9 @@ public class Plugin : IPlugin
 
     // Rows of lots and their lot size, by row id
     internal static readonly Dictionary<long, int> Lots = new Dictionary<long, int>();
+
+    // Rows listed with their stand-in item
+    internal static readonly HashSet<long> StandIns = new HashSet<long>();
 
     private int frame;
 
@@ -128,6 +134,7 @@ public class Plugin : IPlugin
                 foreach (var item in store.PlayerItems.ToList())
                     store.RemoveStoreItem(item);
                 Lots.Clear();
+                StandIns.Clear();
                 output.Add("OK");
                 break;
             case "offer":
@@ -233,6 +240,10 @@ public class Plugin : IPlugin
                 output.Add("OK");
                 break;
             }
+            case "standin":
+                StandIns.Add(long.Parse(args[1], CultureInfo.InvariantCulture));
+                output.Add("OK");
+                break;
             case "use":
             {
                 var character = MySession.Static.LocalCharacter;
@@ -523,5 +534,38 @@ internal static class SellLotPatch
                 (MyFixedPoint)(double)((long)amount * (Plugin.Lots[id] - 1)),
                 item.Item.Value
             );
+    }
+}
+
+// The rows a client gets, as Octahedron's server lists its rows of lots (StoreLots.Listed): the
+// row keeps its id, amount and price, its item is the stand-in. The Store's own rows don't change.
+[HarmonyPatch(typeof(MyStoreBlock), "OnGetStoreItemsResult")]
+// ReSharper disable once UnusedType.Global
+internal static class StandInPatch
+{
+    private static void Prefix(ref List<MyStoreItem> storeItems)
+    {
+        if (Plugin.StandIns.Count == 0 || storeItems == null)
+            return;
+        storeItems = storeItems
+            .Select(row =>
+                Plugin.StandIns.Contains(row.Id) && row.Item is { } item
+                    ? new MyStoreItem(
+                        row.Id,
+                        new MyDefinitionId(
+                            typeof(MyObjectBuilder_Component),
+                            "OctahedronLot_"
+                                + item.TypeId.ToString().Replace("MyObjectBuilder_", "")
+                                + "_"
+                                + item.SubtypeName
+                        ),
+                        row.Amount,
+                        row.PricePerUnit,
+                        row.ItemType,
+                        row.StoreItemType
+                    )
+                    : row
+            )
+            .ToList();
     }
 }

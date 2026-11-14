@@ -6,6 +6,7 @@ using Sandbox.Game.Localization;
 using VRage;
 using VRage.Game;
 using VRage.Game.ObjectBuilders.Definitions;
+using VRage.ObjectBuilders;
 
 namespace ClientPlugin.Game;
 
@@ -28,6 +29,9 @@ internal sealed class Listing
     /// <summary>The key rows of the same item share.</summary>
     public string Key;
 
+    /// <summary>Units of the item one unit of the row is: the lot size of a lot stand-in, else 1.</summary>
+    public int Lot = 1;
+
     /// <summary>Null for an item the game has no definition of.</summary>
     public static Listing Of(MyStoreItem item)
     {
@@ -35,15 +39,22 @@ internal sealed class Listing
         {
             case ItemTypes.PhysicalItem:
             {
+                if (item.Item == null)
+                    return null;
+                MyDefinitionId id = item.Item.Value;
+                int lot = 1;
+                if (StandIn(id) is { } real)
+                {
+                    id = real;
+                    lot = Lots.StandInLot;
+                }
                 if (
-                    item.Item == null
-                    || !MyDefinitionManager.Static.TryGetDefinition(
-                        item.Item.Value,
+                    !MyDefinitionManager.Static.TryGetDefinition(
+                        id,
                         out MyPhysicalItemDefinition definition
                     )
                 )
                     return null;
-                MyDefinitionId id = item.Item.Value;
                 return new Listing
                 {
                     Name = definition.DisplayNameText,
@@ -56,6 +67,7 @@ internal sealed class Listing
                     Id = id,
                     Volume = definition.Volume * 1000.0,
                     Key = id.ToString(),
+                    Lot = lot,
                 };
             }
             case ItemTypes.Oxygen:
@@ -105,6 +117,19 @@ internal sealed class Listing
             default:
                 return null;
         }
+    }
+
+    /// <summary>The item a row of lots stands for, if the row's item is a lot stand-in of one the game has.</summary>
+    private static MyDefinitionId? StandIn(MyDefinitionId id)
+    {
+        if (
+            id.TypeId != typeof(MyObjectBuilder_Component)
+            || !Lots.TryStandIn(id.SubtypeName, out string type, out string subtype)
+            || !MyObjectBuilderType.TryParse("MyObjectBuilder_" + type, out var typeId)
+        )
+            return null;
+        var real = new MyDefinitionId(typeId, subtype);
+        return MyDefinitionManager.Static.TryGetPhysicalItemDefinition(real, out _) ? real : null;
     }
 
     private static Listing Gas(MyDefinitionId id, string name, string icon) =>

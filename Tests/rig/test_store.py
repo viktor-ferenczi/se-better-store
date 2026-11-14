@@ -705,6 +705,96 @@ def check_lots() -> None:
     equal("8. Merge back on is saved", rig.plugin_config("MergeLots"), "true")
 
 
+def check_stand_ins() -> None:
+    """Octahedron lists its rows of lots with stand-in items, "Ice (1 t)" is
+    Component/OctahedronLot_Ore_Ice (SE-1535): they merge into their item, in tonnes"""
+    prepare()
+
+    def row(kind: str, item: str, amount: int, price: int, lot: int) -> int:
+        line = rig.probe(f"{kind} {item} {amount} {price} {lot}")[0]
+        rid = int(line.split(" ")[1])
+        rig.probe(f"standin {rid}")
+        return rid
+
+    # Moon Station's Store: ice in lots only, cobalt by the kg and in lots
+    added = [
+        row("offer", "Ore/Ice", 200, 82, 1000),
+        row("order", "Ore/Ice", 150, 39, 1000),
+        row("offer", "Ingot/Cobalt", 30, 112000, 1000),
+    ]
+    cobalt = int(rig.probe("offer Ingot/Cobalt 30271 112")[0].split(" ")[1])
+    open_store()
+    equal(
+        "11. Stand-ins: merged by default",
+        controls()["BetterStoreMergeLots"]["properties"]["isChecked"],
+        True,
+    )
+    rows = {r[1]: r for r in table()}
+    equal(
+        "11. Stand-ins: no lot line of their own",
+        [
+            n
+            for n in names()
+            if "(1 t" in n or "Lot" in n or n.startswith(("Ice", "Cobalt"))
+        ],
+        ["Cobalt Ingot", "Ice"],
+    )
+    equal(
+        "11. Stand-ins: Ice per tonne, in tonnes", rows["Ice"][2:4], ["82 /t", "200 t"]
+    )
+    equal(
+        "11. Stand-ins: Cobalt merged with its lots",
+        rows["Cobalt Ingot"][2:4],
+        ["112 /kg · 112,000 /t", "60.271 t"],
+    )
+    select("Ice")
+    set_amount("2.5t")
+    equal("11. Stand-ins: Ice trades whole tonnes", text("BetterStoreAmount"), "2,000")
+    detail = text_of_item()
+    check("11. Stand-ins: the detail pane counts kg", " pcs" not in detail, detail)
+    check(
+        "11. Stand-ins: the price shown is 2 x 82 SC",
+        "2 × 1 t lot × 82 SC" in detail,
+        detail,
+    )
+    before = balance()
+    trade()
+    equal(
+        "11. Stand-ins: 2 t of Ice arrived for 164 SC",
+        (held("Ore/Ice"), before - balance()),
+        (2000.0, 164),
+    )
+    side("Sell")
+    equal(
+        "11. Stand-ins: Store pays per tonne for Ice",
+        {r[1]: r for r in table()}["Ice"][2:4],
+        ["39 /t", "150 t"],
+    )
+    side("Buy")
+    shot = rig.APPDATA / "stand-ins-buy.png"
+    api.mouse_move(10, 1070)
+    time.sleep(0.5)
+    api.screenshot_save(str(shot))
+    api.control_set("BetterStoreMergeLots", False, screen=screen_index())
+    wait(lambda: "Ice (1 t lot)" in names(), "the separate lot lines")
+    rows = {r[1]: r for r in table()}
+    equal(
+        "11. Stand-ins, separate: the lot lines",
+        (
+            rows["Ice (1 t lot)"][2:4],
+            rows["Cobalt Ingot (1 t lot)"][2:4],
+            rows["Cobalt Ingot"][2],
+        ),
+        (["82 /lot", "198 lots"], ["112,000 /lot", "30 lots"], "112 /kg"),
+    )
+    api.control_set("BetterStoreMergeLots", True, screen=screen_index())
+    wait(lambda: "Ice (1 t lot)" not in names(), "the merged lines")
+    close_store()
+    for rid in added + [cobalt]:
+        rig.probe(f"stock {rid} 0")
+    print(f"Screenshot: {shot}", flush=True)
+
+
 def check_server_lots() -> None:
     """The server names the rows of lots (channel 14860): then an item sold in lots only shows in
     tonnes, which no guess can tell"""
@@ -830,7 +920,7 @@ def main() -> int:
         setup_store()
         tests = (
             check_open, check_lists, check_character, check_ship_access, check_buy_two_containers, check_buy_max, check_sell,
-            check_amounts, check_gas, check_lots, check_refused, check_close,
+            check_amounts, check_gas, check_lots, check_refused, check_close, check_stand_ins,
             # Last: after the server's message the plugin stops guessing lots for the session
             check_server_lots, screenshots,
         )  # fmt: skip

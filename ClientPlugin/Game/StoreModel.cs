@@ -186,8 +186,17 @@ internal sealed class StoreModel
 
     private void ApplyLots()
     {
+        // The rows of an item with a lot stand-in say which are lots themselves
+        var standIns = new HashSet<string>(
+            Rows.Where(r => listings[r].Lot > 1).Select(r => r.Item)
+        );
+        foreach (var row in Rows.Where(r => standIns.Contains(r.Item)))
+            row.Lot = listings[row].Lot;
         // Gas and ships are never sold in lots
-        var items = Rows.Where(r => !listings[r].IsGas && !listings[r].IsGrid).ToList();
+        var items = Rows.Where(r =>
+                !listings[r].IsGas && !listings[r].IsGrid && !standIns.Contains(r.Item)
+            )
+            .ToList();
         if (LotInfo.Known)
             Lots.Apply(items, LotInfo.ByRowId);
         else
