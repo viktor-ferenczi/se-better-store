@@ -45,3 +45,5 @@ For testing, add the working copy to Pulsar as a development folder (start Pulsa
 
 The trade planning (splitting an amount over rows of lots and single units, and over a ship's
 containers) has no game dependencies. Its tests run with `dotnet run` in the `Tests` folder.
+The Store screen itself is tested in a headless game client by the scripts in
+[Tests/rig](Tests/rig/README.md).

@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ClientPlugin/Trading/*.cs" Link="Trading/%(Filename)%(Extension)" />
+    <!-- A plugin of its own, compiled by Pulsar for the game tests (rig) -->
+    <Compile Remove="StoreProbe/**" />
   </ItemGroup>
 </Project>
