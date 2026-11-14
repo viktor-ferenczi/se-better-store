@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using HarmonyLib;
+using Sandbox.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Blocks;
@@ -114,6 +115,38 @@ public class Plugin : IPlugin
         MyCubeGridGroups
             .Static.Mechanical.GetGroup(Grid(ShipName))
             .Nodes.SelectMany(n => n.NodeData.GetFatBlocks());
+
+    internal static MyDefinitionId StandIn(MyDefinitionId item) =>
+        new MyDefinitionId(
+            typeof(MyObjectBuilder_Component),
+            "OctahedronLot_"
+                + item.TypeId.ToString().Replace("MyObjectBuilder_", "")
+                + "_"
+                + item.SubtypeName
+        );
+
+    // OctahedronMod's lot item: a hidden component named "Ice (1 t)", with the item's icon
+    private static void DefineStandIn(MyDefinitionId item)
+    {
+        var id = StandIn(item);
+        if (MyDefinitionManager.Static.TryGetPhysicalItemDefinition(id, out _))
+            return;
+        var real = MyDefinitionManager.Static.GetPhysicalItemDefinition(item);
+        var definition = new MyComponentDefinition
+        {
+            Id = id,
+            DisplayNameString = real.DisplayNameText + " (1 t)",
+            Icons = real.Icons,
+            Volume = real.Volume * 1000,
+            Mass = real.Mass * 1000,
+            Public = false,
+        };
+        Traverse
+            .Create(MyDefinitionManager.Static)
+            .Field("m_definitions")
+            .Field("m_definitionsById")
+            .GetValue<IDictionary<MyDefinitionId, MyDefinitionBase>>()[id] = definition;
+    }
 
     private static MyDefinitionId Item(string name) =>
         MyDefinitionId.Parse("MyObjectBuilder_" + name);
@@ -241,9 +274,13 @@ public class Plugin : IPlugin
                 break;
             }
             case "standin":
-                StandIns.Add(long.Parse(args[1], CultureInfo.InvariantCulture));
+            {
+                long id = long.Parse(args[1], CultureInfo.InvariantCulture);
+                StandIns.Add(id);
+                DefineStandIn(store.PlayerItems.First(i => i.Id == id).Item.Value);
                 output.Add("OK");
                 break;
+            }
             case "use":
             {
                 var character = MySession.Static.LocalCharacter;
@@ -552,13 +589,7 @@ internal static class StandInPatch
                 Plugin.StandIns.Contains(row.Id) && row.Item is { } item
                     ? new MyStoreItem(
                         row.Id,
-                        new MyDefinitionId(
-                            typeof(MyObjectBuilder_Component),
-                            "OctahedronLot_"
-                                + item.TypeId.ToString().Replace("MyObjectBuilder_", "")
-                                + "_"
-                                + item.SubtypeName
-                        ),
+                        Plugin.StandIn(item),
                         row.Amount,
                         row.PricePerUnit,
                         row.ItemType,

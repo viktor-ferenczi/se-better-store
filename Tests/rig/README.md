@@ -36,7 +36,9 @@ answers in `out-*.txt` on the game thread.
 
 The game has no 1,000 kg lots. The probe emulates them with Harmony patches on the Store's buy
 and sell methods: a row whose item id is listed as a lot moves 1,000 units per count. Its `lots`
-command sends the plugin the same lot message a server would send.
+command sends the plugin the same lot message a server would send. Its `standin` command lists a
+row of lots the way Octahedron's server does: with a stand-in item named after the lot,
+`Component/OctahedronLot_Ore_Ice` shown as "Ice (1 t)", which the probe defines like OctahedronMod.
 
 ## Not covered
 

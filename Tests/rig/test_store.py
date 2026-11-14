@@ -156,6 +156,9 @@ def press_use() -> dict:
         lambda: abs(api.get_character()["position"][2] - (z + 1.6)) < 0.3,
         "the teleport",
     )
+    # Twice: the use target follows the view a few frames late after a large turn
+    api.character_look_at(x, y, z)
+    time.sleep(0.3)
     api.character_look_at(x, y, z)
     return api.character_use()
 
