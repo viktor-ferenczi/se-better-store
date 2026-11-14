@@ -9,6 +9,7 @@ using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Blocks;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Entities.Character.Components;
+using Sandbox.Game.Entities.Cube;
 using Sandbox.Game.GameSystems.BankingAndCurrency;
 using Sandbox.Game.World;
 using VRage;
@@ -68,6 +69,7 @@ internal sealed class StoreModel
 
     private readonly Queue<Step> steps = new Queue<Step>();
     private readonly Stopwatch waiting = new Stopwatch();
+    private Ship trading;
     private int requestNumber;
     private long tradedUnits;
     private long tradedMoney;
@@ -103,6 +105,8 @@ internal sealed class StoreModel
     {
         LotInfo.Listen();
         LotInfo.Changed += OnLots;
+        // The character is there to trade with before, and without, the server's answer
+        OnInventories(new List<long>());
         Store.CreateGetConnectedGridInventoriesRequest(OnInventories);
         Refresh();
     }
@@ -195,9 +199,17 @@ internal sealed class StoreModel
         if (closed)
             return;
         Ships.Clear();
+        // The server lists the blocks of docked grids the player has access to. Both are checked
+        // here again, so the list never shows a ship the player can't trade with.
+        var docked = Docked();
         var blocks = entityIds
-            .Select(id => MyEntities.TryGetEntityById(id, out MyCubeBlock block) ? block : null)
-            .Where(block => block != null);
+            .Select(id => MyEntities.TryGetEntityById(id, out MyTerminalBlock block) ? block : null)
+            .Where(block =>
+                block != null
+                && block.HasLocalPlayerAccess()
+                && docked.Contains(block.CubeGrid)
+                && Trades(block.CubeGrid)
+            );
         // A ship is all the grids mechanically joined to the docked one
         foreach (
             var group in blocks.GroupBy(b =>
@@ -230,6 +242,45 @@ internal sealed class StoreModel
             Ships.Add(suit);
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Whether the server trades with the grid. It lists the grids of the player's faction too,
+    /// but the Store of an NPC station trades only with a grid the player is a big owner of, and
+    /// drops a request for another one without an answer.
+    /// </summary>
+    private bool Trades(MyCubeGrid grid)
+    {
+        long player = MySession.Static.LocalPlayerId;
+        if (grid.BigOwners.Contains(player))
+            return true;
+        var factions = MySession.Static.Factions;
+        // A client may not know the stations, so a Store an NPC owns counts as one
+        if (
+            factions.GetStationByGridId(Store.CubeGrid.EntityId) != null
+            || MySession.Static.Players.IdentityIsNpc(Store.OwnerId)
+        )
+            return false;
+        var faction = factions.TryGetPlayerFaction(player);
+        return faction != null
+            && grid.BigOwners.Any(owner => factions.TryGetPlayerFaction(owner) == faction);
+    }
+
+    /// <summary>The grids docked to the Store's grid at a connector with trading on.</summary>
+    private HashSet<MyCubeGrid> Docked()
+    {
+        var grids = new HashSet<MyCubeGrid>();
+        foreach (var connector in Store.CubeGrid.GetFatBlocks<MyShipConnector>())
+        {
+            if (!connector.Connected || !connector.TradingEnabled.Value || connector.Other == null)
+                continue;
+            var ship = connector.Other.CubeGrid;
+            grids.Add(ship);
+            var group = MyCubeGridGroups.Static.Mechanical.GetGroupNodes(ship);
+            if (group != null)
+                grids.UnionWith(group);
+        }
+        return grids;
     }
 
     // --- inventories ---
@@ -341,6 +392,7 @@ internal sealed class StoreModel
     {
         if (Trading || trades.Count == 0)
             return false;
+        trading = ship;
         long balance = Balance;
         var planned = new List<Step>();
         var usage = new Usage();
@@ -461,7 +513,11 @@ internal sealed class StoreModel
     public void Update()
     {
         if (waiting.IsRunning && waiting.Elapsed.TotalSeconds > AnswerTimeoutSeconds)
-            Fail("The server did not answer the request.");
+            Fail(
+                "The server did not answer. It may not allow you to trade with "
+                    + (trading?.IsCharacter == false ? trading.Name : "this Store")
+                    + "."
+            );
     }
 
     private void Fail(string reason)

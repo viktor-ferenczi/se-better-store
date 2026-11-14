@@ -286,6 +286,65 @@ public class Plugin : IPlugin
                 output.Add("OK");
                 break;
             }
+            case "shipowner":
+            {
+                // me: the player owns the ship; npc: the Store's faction owns all of it but the
+                // connector, which undocks when its owner changes
+                long owner =
+                    args[1] == "me"
+                        ? MySession.Static.LocalPlayerId
+                        : MySession.Static.Factions.TryGetFactionByTag(FactionTag).FounderId;
+                foreach (var block in ShipBlocks.Where(b => !(b is MyShipConnector)))
+                    block.ChangeOwner(owner, MyOwnershipShareModeEnum.None);
+                output.Add("OK");
+                break;
+            }
+            case "mate":
+            {
+                // on: the player joins the Store's faction, whose founder owns the ship and
+                // shares it with the faction. The server then lists the ship for the player.
+                var faction = MySession.Static.Factions.TryGetFactionByTag(FactionTag);
+                long player = MySession.Static.LocalPlayerId;
+                bool on = args[1] == "on";
+                if (on)
+                    MySession.Static.Factions.AddPlayerToFaction(player, faction.FactionId);
+                else
+                    ((IMyFactionCollection)MySession.Static.Factions).KickPlayerFromFaction(player);
+                foreach (var block in ShipBlocks.Where(b => !(b is MyShipConnector)))
+                    block.ChangeOwner(
+                        on ? faction.FounderId : player,
+                        on ? MyOwnershipShareModeEnum.Faction : MyOwnershipShareModeEnum.None
+                    );
+                output.Add("OK");
+                break;
+            }
+            case "listed":
+            {
+                // The inventories the server lists for the player at the station's connector
+                var connector = Grid(StationName).GetFatBlocks<MyShipConnector>().First();
+                var listed =
+                    (List<long>)
+                        AccessTools
+                            .Method(typeof(MyShipConnector), "GetInventoryEntities")
+                            .Invoke(connector, new object[] { MySession.Static.LocalPlayerId });
+                output.Add("LISTED " + listed.Count);
+                break;
+            }
+            case "ship":
+            {
+                var connector = ShipBlocks.OfType<MyShipConnector>().First();
+                output.Add(
+                    $"SHIP connected={connector.Connected} me={MySession.Static.LocalPlayerId} owners={string.Join(",", Grid(ShipName).BigOwners)} blockOwner={connector.OwnerId}"
+                );
+                break;
+            }
+            case "trading":
+            {
+                foreach (var connector in Grid(StationName).GetFatBlocks<MyShipConnector>())
+                    connector.TradingEnabled.Value = args[1] == "on";
+                output.Add("OK");
+                break;
+            }
             case "faction":
             {
                 var faction = MySession.Static.Factions.TryGetFactionByTag(FactionTag);

@@ -23,8 +23,10 @@ Facts from the decompiled game code, version 1.210.
 - One unit of a gas offer is 1,000 L. Buying gas fills one tank per request.
 - A Store's order for Hydrogen, Oxygen or another gas does nothing when a player sells to it:
   the server's sell code handles physical items only.
-- The server drops some bad requests without an answer, for example a trade with a block of a
-  grid the player's faction owns but the player doesn't.
+- The server drops some bad requests without an answer. The Store of an NPC station trades only
+  with a grid the player is a big owner of, although the server lists the grids of the player's
+  faction as well: a trade with one of those, such as an NPC taxi the player rides in, gets no
+  answer.
 - The vanilla screen takes its amounts as a typed number, and its only shortcut is one that sets
   the whole stock of the offer.
 
@@ -39,8 +41,12 @@ action on an item is in the panel on the right.
 
 ### Top row
 
-- **Your ship**: a combo box of the docked grids that the Store may trade with, one entry per
-  grid, and "Character" for the suit. The first ship is selected when the screen opens.
+- **Your ship or character**: a combo box of the ships to trade with, and "Character" for the
+  suit, which is always listed. A ship is listed only while it is docked to the Store's grid at a
+  connector with trading on, only with the blocks the player has access to, and only if the
+  server trades with it. At the Store of an NPC station that is a grid the player is a big owner
+  of. At a player's Store a grid of the player's faction counts too. The first ship is selected
+  when the screen opens.
 - **Cargo** and **Hydrogen**: progress bars over all inventories, or all hydrogen tanks, of the
   selected ship, with the volume as text. While an amount is entered, a second bar shows how
   much the trade would add.
@@ -48,7 +54,9 @@ action on an item is in the panel on the right.
 
 ### Buy and Sell tabs
 
-One table per tab, 15 rows before it scrolls. Click a column header to sort.
+One table per tab, 15 rows before it scrolls. The Buy tab opens sorted by item name. The Sell tab
+opens with the items the player has the most of first, and by name among equals. Click a column
+header to sort by it.
 
 | Buy | Sell |
 |---|---|
