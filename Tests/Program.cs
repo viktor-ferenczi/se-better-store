@@ -264,5 +264,24 @@ Equal("step down: from 1 t to 900 kg", Amounts.StepDown(1000, Unit.Kg, 1), 900L)
 Equal("step down: from 100 kg to nothing", Amounts.StepDown(100, Unit.Kg, 1), 0L);
 Equal("step down: from 10 pieces to 9", Amounts.StepDown(10, Unit.Pieces, 1), 9L);
 
+// --- Octahedron's lot stand-ins (SE-1535) ---
+Check(
+    "stand-in: Ore/Ice",
+    Lots.TryStandIn("OctahedronLot_Ore_Ice", out string standType, out string standSubtype)
+        && standType == "Ore"
+        && standSubtype == "Ice",
+    $"{standType}/{standSubtype}"
+);
+Check(
+    "stand-in: a subtype with an underscore",
+    Lots.TryStandIn("OctahedronLot_Component_Some_Part", out standType, out standSubtype)
+        && standType == "Component"
+        && standSubtype == "Some_Part",
+    $"{standType}/{standSubtype}"
+);
+Check("stand-in: a plain component is none", !Lots.TryStandIn("SteelPlate", out _, out _));
+Check("stand-in: no subtype is none", !Lots.TryStandIn("OctahedronLot_Ore_", out _, out _));
+Check("stand-in: no type is none", !Lots.TryStandIn("OctahedronLot_Ice", out _, out _));
+
 Console.WriteLine($"{passed}/{passed + failed} trade planning checks passed");
 return failed;

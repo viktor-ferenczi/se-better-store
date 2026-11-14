@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using HarmonyLib;
+using Sandbox.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Blocks;
@@ -47,6 +48,9 @@ namespace BetterStoreProbe;
 //   inv                         INV <block>|<item>=<amount>;...  and  TANK <block> <liters>, then
 //                               INV Character|... for the player's suit
 //   lots                        sends the plugin the lot rows as a server would (channel 14860)
+//   standin <id>                lists a row of lots with Octahedron's stand-in item for it,
+//                               Component/OctahedronLot_<Type>_<Subtype>, as Octahedron's server
+//                               does with OctahedronMod
 //   use                         uses the Store as the F key does
 //   usespot                     SPOT x y z: the middle of the Store's use area, for aiming at it
 //   enabled <true|false>        sets the Better Store plugin's Enabled option
@@ -63,6 +67,9 @@ public class Plugin : IPlugin
 
     // Rows of lots and their lot size, by row id
     internal static readonly Dictionary<long, int> Lots = new Dictionary<long, int>();
+
+    // Rows listed with their stand-in item
+    internal static readonly HashSet<long> StandIns = new HashSet<long>();
 
     private int frame;
 
@@ -109,6 +116,38 @@ public class Plugin : IPlugin
             .Static.Mechanical.GetGroup(Grid(ShipName))
             .Nodes.SelectMany(n => n.NodeData.GetFatBlocks());
 
+    internal static MyDefinitionId StandIn(MyDefinitionId item) =>
+        new MyDefinitionId(
+            typeof(MyObjectBuilder_Component),
+            "OctahedronLot_"
+                + item.TypeId.ToString().Replace("MyObjectBuilder_", "")
+                + "_"
+                + item.SubtypeName
+        );
+
+    // OctahedronMod's lot item: a hidden component named "Ice (1 t)", with the item's icon
+    private static void DefineStandIn(MyDefinitionId item)
+    {
+        var id = StandIn(item);
+        if (MyDefinitionManager.Static.TryGetPhysicalItemDefinition(id, out _))
+            return;
+        var real = MyDefinitionManager.Static.GetPhysicalItemDefinition(item);
+        var definition = new MyComponentDefinition
+        {
+            Id = id,
+            DisplayNameString = real.DisplayNameText + " (1 t)",
+            Icons = real.Icons,
+            Volume = real.Volume * 1000,
+            Mass = real.Mass * 1000,
+            Public = false,
+        };
+        Traverse
+            .Create(MyDefinitionManager.Static)
+            .Field("m_definitions")
+            .Field("m_definitionsById")
+            .GetValue<IDictionary<MyDefinitionId, MyDefinitionBase>>()[id] = definition;
+    }
+
     private static MyDefinitionId Item(string name) =>
         MyDefinitionId.Parse("MyObjectBuilder_" + name);
 
@@ -128,6 +167,7 @@ public class Plugin : IPlugin
                 foreach (var item in store.PlayerItems.ToList())
                     store.RemoveStoreItem(item);
                 Lots.Clear();
+                StandIns.Clear();
                 output.Add("OK");
                 break;
             case "offer":
@@ -230,6 +270,14 @@ public class Plugin : IPlugin
                     Encoding.UTF8.GetBytes(text),
                     MyAPIGateway.Multiplayer.MyId
                 );
+                output.Add("OK");
+                break;
+            }
+            case "standin":
+            {
+                long id = long.Parse(args[1], CultureInfo.InvariantCulture);
+                StandIns.Add(id);
+                DefineStandIn(store.PlayerItems.First(i => i.Id == id).Item.Value);
                 output.Add("OK");
                 break;
             }
@@ -523,5 +571,32 @@ internal static class SellLotPatch
                 (MyFixedPoint)(double)((long)amount * (Plugin.Lots[id] - 1)),
                 item.Item.Value
             );
+    }
+}
+
+// The rows a client gets, as Octahedron's server lists its rows of lots (StoreLots.Listed): the
+// row keeps its id, amount and price, its item is the stand-in. The Store's own rows don't change.
+[HarmonyPatch(typeof(MyStoreBlock), "OnGetStoreItemsResult")]
+// ReSharper disable once UnusedType.Global
+internal static class StandInPatch
+{
+    private static void Prefix(ref List<MyStoreItem> storeItems)
+    {
+        if (Plugin.StandIns.Count == 0 || storeItems == null)
+            return;
+        storeItems = storeItems
+            .Select(row =>
+                Plugin.StandIns.Contains(row.Id) && row.Item is { } item
+                    ? new MyStoreItem(
+                        row.Id,
+                        Plugin.StandIn(item),
+                        row.Amount,
+                        row.PricePerUnit,
+                        row.ItemType,
+                        row.StoreItemType
+                    )
+                    : row
+            )
+            .ToList();
     }
 }

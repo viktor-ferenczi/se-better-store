@@ -8,6 +8,27 @@ public static class Lots
 {
     public const int GuessedLot = 1000;
 
+    // Octahedron shows a row of 1,000 unit lots with a stand-in item of its mod, named after the
+    // item: Component/OctahedronLot_Ore_Ice is a lot of 1,000 kg of Ore/Ice
+    public const string StandInPrefix = "OctahedronLot_";
+    public const int StandInLot = 1000;
+
+    /// <summary>The type and subtype of the item a lot stand-in's subtype names: "OctahedronLot_Ore_Ice" is ("Ore", "Ice").</summary>
+    public static bool TryStandIn(string subtype, out string type, out string itemSubtype)
+    {
+        type = itemSubtype = null;
+        if (subtype == null || !subtype.StartsWith(StandInPrefix))
+            return false;
+        // Type names have no underscore; subtypes may
+        string rest = subtype.Substring(StandInPrefix.Length);
+        int split = rest.IndexOf('_');
+        if (split <= 0 || split == rest.Length - 1)
+            return false;
+        type = rest.Substring(0, split);
+        itemSubtype = rest.Substring(split + 1);
+        return true;
+    }
+
     // A lot costs the unit price times the lot size, give or take taxes and rounding to whole SC
     private const double MinRatio = 0.8 * GuessedLot;
     private const double MaxRatio = 1.25 * GuessedLot;
