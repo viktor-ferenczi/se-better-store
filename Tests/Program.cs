@@ -158,6 +158,28 @@ Check(
     !Planner.Possible(ice, 4000, new long[] { 2500, 1999 }, long.MaxValue)
 );
 
+// --- Usage: lines of one item share the inventories (Sell all cargo with lots shown apart) ---
+var ironUnits = new Entry { Unit = Order("Iron", 13, 150000) };
+var ironLots = new Entry { LotRow = Order("Iron", 13916, 150, 1000) };
+var usage = new Usage();
+var held = new long[] { 3000, 1500 };
+long most = Planner.Max(ironUnits, usage.Left(ironUnits, held), 0);
+Equal("usage: the first line sells all", most, 4500L);
+usage.Add(
+    ironUnits,
+    Planner.Place(Planner.Split(ironUnits, most), usage.Left(ironUnits, held), out left)
+);
+Equal(
+    "usage: nothing left for the second line",
+    Planner.Max(ironLots, usage.Left(ironLots, held), 0),
+    0L
+);
+Equal(
+    "usage: other items keep their room",
+    string.Join(",", usage.Left(stoneSell, held)),
+    "3000,1500"
+);
+
 // --- Entry.Build ---
 var rows = new List<Row>
 {

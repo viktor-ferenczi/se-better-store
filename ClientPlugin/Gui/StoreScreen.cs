@@ -35,6 +35,8 @@ internal sealed class StoreScreen : MyGuiScreenBase
     private const int PriceLines = 4;
     private const int SlotLines = 3;
     private const int Presets = 6;
+    private const float CellMargin = 0.01f;
+    private const float Inset = 0.01f;
 
     private static readonly Vector4 Dim = new Vector4(0.62f, 0.72f, 0.8f, 1f);
     private static readonly Vector4 Good = new Vector4(0.62f, 0.88f, 0.63f, 1f);
@@ -50,6 +52,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
     private long amount;
     private long max;
     private bool filling;
+    private bool settingAmountText;
 
     private MyGuiControlCombobox shipBox;
     private MyGuiControlLabel cargoLabel;
@@ -196,7 +199,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             () => SetSide(Side.Sell),
             "BetterStoreSellTab"
         );
-        Label(
+        var mergeLabel = Label(
             Right,
             -0.268f,
             "Merge lots into their item",
@@ -204,7 +207,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
         );
         mergeBox = new MyGuiControlCheckbox(
-            new Vector2(Right - 0.215f, -0.268f),
+            new Vector2(Right - mergeLabel.Size.X - 0.005f, -0.268f),
             isChecked: Config.Current.MergeLots,
             toolTip: "Shows an item sold both by the unit and in 1,000 unit lots as one line, and trades the cheapest mix.",
             originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
@@ -229,7 +232,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             ColumnsCount = 5,
             VisibleRowsCount = TableRows,
         };
-        table.SetCustomColumnWidths(new[] { 0.07f, 0.31f, 0.26f, 0.18f, 0.18f });
+        table.SetCustomColumnWidths(new[] { 0.05f, 0.235f, 0.295f, 0.21f, 0.21f });
         for (int column = 2; column < 5; column++)
         {
             table.SetColumnAlign(column, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
@@ -237,6 +240,9 @@ internal sealed class StoreScreen : MyGuiScreenBase
                 column,
                 MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
             );
+            // The table moves a header right by the column's left margin and a right aligned cell
+            // left by it and the cell's own. A negative margin and the cells' Margin line them up.
+            table.SetHeaderColumnMargin(column, new Thickness(-CellMargin / 2, 0f, CellMargin, 0f));
             table.SetColumnComparison(
                 column,
                 (a, b) => ((double)a.UserData).CompareTo((double)b.UserData)
@@ -265,10 +271,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
             OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
             Size = new Vector2(0.25f, 0.04f),
         };
-        amountBox.EnterPressed += box => ReadAmount();
-        amountBox.FocusChanged += (control, focused) =>
+        // The panel follows the amount as it is typed; the box shows it formatted once it loses focus
+        amountBox.TextChanged += box =>
         {
-            if (!focused)
+            if (!settingAmountText)
                 ReadAmount();
         };
         Controls.Add(amountBox);
@@ -296,47 +302,36 @@ internal sealed class StoreScreen : MyGuiScreenBase
             );
         }
 
-        Label(PanelLeft, -0.058f, "Price", Dim);
+        Frame(-0.078f, 0.145f);
+        Label(PanelLeft + Inset, -0.058f, "Price", Dim);
         for (int i = 0; i < PriceLines; i++)
         {
-            priceNames[i] = Label(PanelLeft, -0.03f + i * 0.026f, "", White);
+            priceNames[i] = Label(PanelLeft + Inset, -0.03f + i * 0.026f, "", White);
             priceValues[i] = Label(
-                Right,
+                Right - Inset,
                 -0.03f + i * 0.026f,
                 "",
                 White,
                 MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
             );
         }
-        slotsTitle = Label(PanelLeft, 0.09f, "", Dim);
+        Frame(0.075f, 0.12f);
+        slotsTitle = Label(PanelLeft + Inset, 0.095f, "", Dim);
         for (int i = 0; i < SlotLines; i++)
         {
-            slotNames[i] = Label(PanelLeft, 0.118f + i * 0.026f, "", White);
+            slotNames[i] = Label(PanelLeft + Inset, 0.123f + i * 0.026f, "", White);
             slotValues[i] = Label(
-                Right,
-                0.118f + i * 0.026f,
+                Right - Inset,
+                0.123f + i * 0.026f,
                 "",
                 White,
                 MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
             );
         }
 
-        tradeButton = Button(
-            PanelLeft,
-            0.275f,
-            0.232f,
-            "",
-            () => Trade(amount),
-            "BetterStoreTrade"
-        );
-        maxButton = Button(
-            PanelLeft + 0.236f,
-            0.275f,
-            Right - PanelLeft - 0.236f,
-            "",
-            () => Trade(max),
-            "BetterStoreTradeMax"
-        );
+        float half = (Right - PanelLeft - 0.004f) / 2;
+        tradeButton = Button(PanelLeft, 0.282f, half, "", () => Trade(amount), "BetterStoreTrade");
+        maxButton = Button(Right - half, 0.282f, half, "", () => Trade(max), "BetterStoreTradeMax");
 
         // Bottom row
         Button(Left, 0.39f, 0.11f, "Refresh", model.Refresh, "BetterStoreRefresh");
@@ -372,7 +367,21 @@ internal sealed class StoreScreen : MyGuiScreenBase
         statusLabel.Name = "BetterStoreStatus";
 
         Rebuild();
+        FocusedControl = table;
     }
+
+    // A dark box with a border around a part of the trade panel
+    private void Frame(float top, float height) =>
+        Controls.Add(
+            new MyGuiControlPanel(
+                new Vector2(PanelLeft, top),
+                new Vector2(Right - PanelLeft, height),
+                originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP
+            )
+            {
+                BackgroundTexture = MyGuiConstants.TEXTURE_RECTANGLE_DARK_BORDER,
+            }
+        );
 
     private MyGuiControlLabel Label(
         float x,
@@ -423,7 +432,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
             new Vector2(width, 0.04f),
             originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
             text: new StringBuilder(text),
-            onButtonClick: source => onClick()
+            onButtonClick: source => onClick(),
+            // Amounts and totals make long texts: smaller letters, then an ellipsis
+            isAutoscaleEnabled: true,
+            isEllipsisEnabled: true
         )
         {
             Name = name,
@@ -554,19 +566,15 @@ internal sealed class StoreScreen : MyGuiScreenBase
                         : listing.Name
                 )
             );
-            row.AddCell(new MyGuiControlTable.Cell(PriceText(entry, listing, lots), price));
+            row.AddCell(RightCell(PriceText(entry, listing, lots), price));
             row.AddCell(
-                new MyGuiControlTable.Cell(
-                    Shown(entry.Available, listing.Unit, scale),
-                    (double)entry.Available,
-                    textColor: new Color(Dim)
-                )
+                RightCell(Shown(entry.Available, listing.Unit, scale), entry.Available, Dim)
             );
             row.AddCell(
-                new MyGuiControlTable.Cell(
+                RightCell(
                     last == 0 ? "-" : Shown(last, listing.Unit, scale),
-                    (double)last,
-                    textColor: last == 0 ? new Color(Dim) : (Color?)null
+                    last,
+                    last == 0 ? Dim : (Vector4?)null
                 )
             );
             table.Add(row);
@@ -579,6 +587,20 @@ internal sealed class StoreScreen : MyGuiScreenBase
         amount = 0;
         UpdatePanel();
     }
+
+    private static MyGuiControlTable.Cell RightCell(
+        string text,
+        double value,
+        Vector4? color = null
+    ) =>
+        new MyGuiControlTable.Cell(
+            text,
+            value,
+            textColor: color.HasValue ? new Color(color.Value) : (Color?)null
+        )
+        {
+            Margin = new Thickness(CellMargin, 0f, 0f, 0f),
+        };
 
     private static string KeyOf(Entry entry) => $"{entry.Item}|{entry.Unit?.Id}|{entry.LotRow?.Id}";
 
@@ -623,13 +645,14 @@ internal sealed class StoreScreen : MyGuiScreenBase
 
     // --- the amount ---
 
+    // A line of lots shown on its own steps by whole lots, like pieces
+    private Unit StepUnit => Scale > 1 ? Unit.Pieces : Listing?.Unit ?? Unit.Pieces;
+
     private long Step(long at) =>
-        Amounts.StepAt(at / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1)
-        * Scale;
+        Amounts.StepAt(at / Scale, StepUnit, selected?.Step / Scale ?? 1) * Scale;
 
     private long StepDown() =>
-        Amounts.StepDown(amount / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1)
-        * Scale;
+        Amounts.StepDown(amount / Scale, StepUnit, selected?.Step / Scale ?? 1) * Scale;
 
     private void SetAmount(long units)
     {
@@ -638,6 +661,15 @@ internal sealed class StoreScreen : MyGuiScreenBase
         long step = selected.Step;
         amount = Math.Max(0, Math.Min(max, units / step * step));
         UpdatePanel();
+    }
+
+    private void ShowAmount(string text)
+    {
+        if (amountBox.Text == text)
+            return;
+        settingAmountText = true;
+        amountBox.Text = text;
+        settingAmountText = false;
     }
 
     private void ReadAmount()
@@ -693,7 +725,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             + (buying ? "fits: " : "you can sell: ")
             + Shown(max, listing.Unit, scale);
         if (!amountBox.HasFocus)
-            amountBox.Text = Amounts.Number(amount / scale);
+            ShowAmount(Amounts.Number(amount / scale));
         unitLabel.Text = scale > 1 ? "lots" : Amounts.Name(listing.Unit);
 
         FillPresets(listing, scale, buying);
@@ -798,7 +830,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         infoLabel.Text = "";
         unitLabel.Text = "";
         if (!amountBox.HasFocus)
-            amountBox.Text = "";
+            ShowAmount("");
         slotsTitle.Text = "";
         foreach (var label in priceNames.Concat(priceValues).Concat(slotNames).Concat(slotValues))
             label.Text = "";
@@ -924,23 +956,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
     }
 
     /// <summary>All of every item on the ship that the Store wants.</summary>
-    private List<KeyValuePair<Entry, long>> AllCargo(Ship ship)
-    {
-        var trades = new List<KeyValuePair<Entry, long>>();
-        if (ship == null || side != Side.Sell)
-            return trades;
-        foreach (var entry in entries)
-        {
-            long most = Planner.Max(
-                entry,
-                model.Slots(entry, ship).Select(s => s.Room).ToList(),
-                0
-            );
-            if (most > 0)
-                trades.Add(new KeyValuePair<Entry, long>(entry, most));
-        }
-        return trades;
-    }
+    private List<KeyValuePair<Entry, long>> AllCargo(Ship ship) =>
+        ship == null || side != Side.Sell
+            ? new List<KeyValuePair<Entry, long>>()
+            : model.AllCargo(entries, ship);
 
     private void UpdateSellAll(Ship ship)
     {

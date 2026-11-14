@@ -150,3 +150,30 @@ public static class Planner
         return Split(entry, low).Amount;
     }
 }
+
+/// <summary>
+/// What the earlier lines of one trade take from each inventory. Two lines of one item, like a
+/// row of lots shown on its own next to its row of single units, share what the inventories hold:
+/// what one line sells isn't there for the next.
+/// </summary>
+public sealed class Usage
+{
+    private readonly Dictionary<(string, int), long> used = new Dictionary<(string, int), long>();
+
+    /// <summary>The room for the line's item left of room[i], by inventory.</summary>
+    public List<long> Left(Entry entry, IReadOnlyList<long> room) =>
+        room.Select(
+                (r, i) => Math.Max(0, r - (used.TryGetValue((entry.Item, i), out long u) ? u : 0))
+            )
+            .ToList();
+
+    public void Add(Entry entry, IEnumerable<Request> requests)
+    {
+        foreach (var request in requests)
+        {
+            var key = (entry.Item, request.Slot);
+            used[key] =
+                (used.TryGetValue(key, out long u) ? u : 0) + (long)request.Count * request.Row.Lot;
+        }
+    }
+}

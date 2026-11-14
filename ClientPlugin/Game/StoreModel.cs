@@ -343,17 +343,20 @@ internal sealed class StoreModel
             return false;
         long balance = Balance;
         var planned = new List<Step>();
+        var usage = new Usage();
         foreach (var trade in trades)
         {
             var entry = trade.Key;
             var slots = Slots(entry, ship);
-            var room = slots.Select(s => s.Room).ToList();
+            var room = usage.Left(entry, slots.Select(s => s.Room).ToList());
             if (!Planner.Possible(entry, trade.Value, room, balance))
                 return false;
             var quote = Planner.Split(entry, trade.Value);
             if (entry.Side == Side.Buy)
                 balance -= quote.Cost;
-            foreach (var request in Planner.Place(quote, room, out _))
+            var requests = Planner.Place(quote, room, out _);
+            usage.Add(entry, requests);
+            foreach (var request in requests)
                 planned.Add(
                     new Step
                     {
@@ -374,6 +377,23 @@ internal sealed class StoreModel
         SetStatus("", false);
         SendNext();
         return true;
+    }
+
+    /// <summary>All of every line's item on the ship that the Store wants, for Sell all cargo.</summary>
+    public List<KeyValuePair<Entry, long>> AllCargo(IEnumerable<Entry> entries, Ship ship)
+    {
+        var trades = new List<KeyValuePair<Entry, long>>();
+        var usage = new Usage();
+        foreach (var entry in entries)
+        {
+            var room = usage.Left(entry, Slots(entry, ship).Select(s => s.Room).ToList());
+            long most = Planner.Max(entry, room, 0);
+            if (most <= 0)
+                continue;
+            trades.Add(new KeyValuePair<Entry, long>(entry, most));
+            usage.Add(entry, Planner.Place(Planner.Split(entry, most), room, out _));
+        }
+        return trades;
     }
 
     private void SendNext()
