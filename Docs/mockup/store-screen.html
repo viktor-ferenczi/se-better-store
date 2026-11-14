@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Store</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a 16:9 game viewport drawn to scale, with the Store screen at the size of the game's terminal screen. Notes below it. Single dark look on purpose: it mimics SE's GUI. */
+:root{
+  --page:#0d1115; --ink:#d5dee6; --muted:#8b9aa6; --rule:#2a343d; --accent:#7cc4e8;
+  /* SE GUI tones */
+  --se-bg:rgba(34,44,54,.93); --se-edge:#5b7286; --se-text:#c9dbea; --se-dim:#8ba3b6; --se-ctl:#29353f; --se-ctl-hi:#3d5263; --se-ctl-edge:#6b8498; --se-sel:#4a6a82; --se-row:#26313a; --se-ok:#9fe0a0; --se-warn:#e8c170; --se-err:#f08a7a; --se-fill:#6fa6c9; --se-add:#9fe0a0;
+  --ui:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif; --game:"Titillium Web","Trebuchet MS",ui-sans-serif,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--page);color:var(--ink)}
+body{font-family:var(--ui);font-size:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.intro{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+.intro h1{font-size:20px;font-weight:600;margin:0 0 4px}
+.intro p{margin:0;color:var(--muted);max-width:75ch;line-height:1.45}
+.toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.seg button{background:transparent;color:var(--muted);border:0;padding:5px 10px;font:inherit;cursor:pointer}
+.seg button.on{background:#2c4a5e;color:#fff}
+.scroll{overflow-x:auto}
+
+/* ---- the game viewport, to scale: 1em inside = 1 % of the viewport width ---- */
+.viewport{container-type:inline-size;min-width:760px;aspect-ratio:16/9;position:relative;border:1px solid var(--rule);
+  background:radial-gradient(120% 90% at 30% 20%,#33424e 0,#1a2229 45%,#0c1014 100%);overflow:hidden}
+.viewport::after{content:"1920 × 1080 game window";position:absolute;left:.8cqw;bottom:.5cqw;font:400 .9cqw var(--ui);color:#5d6c78}
+.se{position:absolute;left:12%;top:4%;width:76%;height:92%;font:400 1.02cqw/1.25 var(--game);color:var(--se-text);
+  background:var(--se-bg);border:1px solid var(--se-edge);display:grid;grid-template-rows:3.4em 4.4em 2.5em minmax(0,1fr) 3.2em;padding:0 1.6em}
+.se *{box-sizing:border-box}
+.cap{display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid var(--se-edge);font-size:1.35em;letter-spacing:.02em}
+.cap .x{position:absolute;right:0;top:.5em;width:1.5em;height:1.5em;display:grid;place-items:center;border:1px solid var(--se-ctl-edge);background:var(--se-ctl);font-size:.75em;cursor:pointer}
+.shipbar{display:grid;grid-template-columns:28em 1fr 1fr 12em;gap:1.6em;align-items:center}
+.fld{display:flex;flex-direction:column;gap:.25em;min-width:0}
+.fld > span{color:var(--se-dim);font-size:.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se select{width:100%;height:2em;background:var(--se-ctl);color:var(--se-text);border:1px solid var(--se-ctl-edge);font:inherit;padding:0 .4em;border-radius:0}
+.pbar{height:.9em;background:#141b21;border:1px solid var(--se-ctl-edge);position:relative;overflow:hidden}
+.pbar i{position:absolute;inset:0 auto 0 0;background:var(--se-fill)}
+.pbar b{position:absolute;inset:0 auto 0 0;background:var(--se-add)}
+.balance{text-align:right}
+.balance b{display:block;font-weight:600;font-size:1.25em;color:#fff}
+.tabs{display:flex;gap:.2em;align-items:end;border-bottom:1px solid var(--se-edge)}
+.tabs button{height:2.1em;min-width:8em;background:var(--se-ctl);border:1px solid var(--se-ctl-edge);border-bottom:0;color:var(--se-dim);font:inherit;cursor:pointer}
+.tabs button.on{background:var(--se-sel);color:#fff}
+.chk{margin-left:auto;align-self:center;display:flex;align-items:center;gap:.5em;cursor:pointer;color:var(--se-text)}
+.chk input{position:absolute;opacity:0}
+.chk i{width:1.3em;height:1.3em;background:#141b21;border:1px solid var(--se-ctl-edge);display:grid;place-items:center;font-style:normal}
+.chk input:checked + i::after{content:"";width:.7em;height:.7em;background:var(--se-fill)}
+.chk input:focus-visible + i{outline:2px solid var(--accent)}
+.main{display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);gap:1.4em;padding-top:.9em;min-height:0}
+/* MyGuiControlTable: header + fixed rows, a text and one icon per cell, whole-row selection */
+.tbl{border:1px solid var(--se-ctl-edge);display:flex;flex-direction:column;min-height:0;background:#1b242b}
+.tr{display:grid;grid-template-columns:minmax(0,34fr) minmax(0,26fr) minmax(0,20fr) minmax(0,20fr);height:2em;align-items:center;flex:none}
+.tr > div{padding:0 .6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;font-variant-numeric:tabular-nums}
+.tr > div:first-child{text-align:left;display:flex;align-items:center;gap:.5em}
+.tr.h{background:var(--se-ctl-hi);color:#fff;border-bottom:1px solid var(--se-ctl-edge)}
+.rows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--se-ctl-edge) #141b21}
+.rows .tr{cursor:pointer}
+.rows .tr:nth-child(even){background:var(--se-row)}
+.rows .tr:hover{background:#34485a}
+.rows .tr.sel{background:var(--se-sel);color:#fff}
+.ic{flex:none;width:1.5em;height:1.5em;background:#10161b;border:1px solid #46596a;display:grid;place-items:center;font-size:.8em;color:var(--se-dim)}
+.dimc{color:var(--se-dim)} .nonec{color:#5c6f7e}
+.side{display:flex;flex-direction:column;gap:.7em;min-height:0;min-width:0}
+.head{display:flex;gap:.8em;align-items:center}
+.head .ic{width:2.6em;height:2.6em;font-size:1em}
+.head b{font-weight:600;font-size:1.25em;color:#fff;display:block}
+.head span{color:var(--se-dim);font-size:.9em}
+.amt{display:grid;grid-template-columns:2.2em 1fr 2.2em;gap:.4em}
+.btn{height:2.2em;background:linear-gradient(#35444f,#27323b);border:1px solid var(--se-ctl-edge);color:var(--se-text);font:inherit;cursor:pointer;padding:0 .5em;white-space:nowrap}
+.btn:hover{background:linear-gradient(#496073,#374a59);color:#fff}
+.btn:disabled{color:#5c6f7e;border-color:#3a4853;cursor:not-allowed;background:#242d34}
+.box{display:flex;align-items:center;background:#141b21;border:1px solid var(--se-ctl-edge);padding:0 .6em;height:2.2em}
+.box input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font:600 1.15em var(--game);text-align:right;outline:none}
+.box span{color:var(--se-dim);margin-left:.5em}
+.presets{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.4em}
+.grp{border:1px solid #46596a;background:#1b242b;min-height:0}
+.grp h4{margin:0;padding:.2em .6em;font:400 .9em var(--game);color:var(--se-dim);border-bottom:1px solid #46596a}
+.grp ul{list-style:none;margin:0;padding:.3em .6em;overflow-y:auto;scrollbar-width:thin}
+.grp.price ul{height:6.6em} .grp.where ul{height:5.3em}
+.grp li{display:flex;justify-content:space-between;gap:1em;height:1.5em;align-items:center;font-variant-numeric:tabular-nums}
+.grp li span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp li.tot{color:#fff;font-weight:600}
+.grp li.warn{color:var(--se-warn)} .grp li.err{color:var(--se-err)}
+.go{display:grid;grid-template-columns:3fr 2fr;gap:.5em;margin-top:auto}
+.go .btn{height:2.6em}
+.go .primary{font-weight:600;color:#fff;border-color:#9fbdd3;background:linear-gradient(#4a6a82,#35505f)}
+.go .primary:disabled{color:#5c6f7e;border-color:#3a4853;background:#242d34}
+.foot{display:flex;gap:.6em;align-items:center}
+.foot .btn{min-width:9em}
+.status{margin-left:auto;text-align:right;color:var(--se-ok);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.status.err{color:var(--se-err)}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.notes section{border:1px solid var(--rule);border-radius:6px;padding:14px 18px;background:#141a1f}
+.notes h3{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--accent)}
+.notes ol,.notes ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.notes b{font-weight:600;color:#fff}
+.notes code{font-size:12px;color:var(--accent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <div>
+      <h1>Better Store, approved design</h1>
+      <p>Drawn to scale inside a 16:9 game window, at the size of the game's terminal screen (it also fits 4:3), using only controls the game's GUI has. Clickable: example ships, stock and prices; Buy and Sell change the example cargo.</p>
+    </div>
+  </div>
+
+  <div class="scroll"><div class="viewport"><div class="se" id="screen">
+    <div class="cap">Store - OCT Alpha Station<span class="x">✕</span></div>
+    <div class="shipbar">
+      <label class="fld"><span>Your ship</span><select id="ship"></select></label>
+      <div class="fld"><span id="cargoTxt"></span><div class="pbar"><i id="cargoBar"></i><b id="cargoAdd"></b></div></div>
+      <div class="fld"><span id="tankTxt"></span><div class="pbar"><i id="tankBar"></i><b id="tankAdd"></b></div></div>
+      <div class="balance"><span class="dimc">Balance</span><b id="bal"></b></div>
+    </div>
+    <div class="tabs"><button data-t="buy" class="on">Buy</button><button data-t="sell">Sell</button><label class="chk"><input type="checkbox" id="merge" checked><i></i>Merge lots into their item</label></div>
+    <div class="main">
+      <div class="tbl"><div class="tr h" id="thead"></div><div class="rows" id="tbody"></div></div>
+      <div class="side" id="panel"></div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </div></div></div>
+
+  <div class="notes">
+    <section>
+      <h3>What the game's GUI allows, and what changed from round 1</h3>
+      <ul>
+        <li>Built from the game's own controls: a table, a combo box, progress bars, a text box, plain rectangular buttons, labels, list boxes. Square corners, one font, the game's blue-grey skin.</li>
+        <li><b>A table cell holds one text and one icon</b>, nothing else. So no "Sell all" button in each row and no coloured tags: lots show in the price text ("1 /kg · 1,020 /t"), or as "Stone (1 t lot)" with separate rows.</li>
+        <li><b>Sell all</b> is the button next to Sell for the selected item; <b>Sell all cargo</b> sits under the table. Double-click on a row trades the amount in the box, as in the vanilla screen.</li>
+        <li>Preset chips became one row of six small buttons. The amount box takes typed input ("2500", "2.5t").</li>
+        <li>The table shows 15 rows before it scrolls; "Goes into" shows 3 containers and scrolls for more.</li>
+        <li>Results go to the status line at the bottom right; refusals from the server use the game's message box, as today.</li>
+        <li>The green part of the Cargo and Hydrogen bars previews the trade. That is a second bar drawn over the first, which the game can do.</li>
+      </ul>
+    </section>
+    <section>
+      <h3>Decided</h3>
+      <ul>
+        <li><b>Lots:</b> merged into their item by default; the checkbox lists them as separate rows, and the plugin remembers it.</li>
+        <li><b>Which rows are lots:</b> Octahedron sends the plugin its lot list when a Store opens. On other servers the plugin guesses from the price ratio of two rows of one item.</li>
+        <li><b>Vanilla screen:</b> replaced. Administration opens the game's own screen for Store owners; turning the plugin off brings vanilla back.</li>
+        <li><b>Sell all cargo:</b> kept, and it always asks once with the item count and total. Single-item trades never ask.</li>
+        <li><b>H2/O2 orders:</b> hidden on the Sell tab. Mod-API Gas orders show and drain the ship's tanks.</li>
+        <li><b>Name, repo, license:</b> Better Store, viktor-ferenczi/se-better-store, MIT.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const fmtQ = (q, u) => u === 'kg' ? (q >= 1000 && q % 100 === 0 ? (q/1000).toLocaleString('en-US') + ' t' : fmt(q) + ' kg') : u === 'm³' ? fmt(q) + ' m³' : fmt(q) + ' pcs';
+
+// Store rows as the game lists them. lot = base units per Store unit. Prices in SC per Store unit.
+const ITEMS = [
+  {id:'stone', name:'Stone', ab:'St', u:'kg', vol:0.37, rows:[{lot:1,ask:1,stock:50000,bid:0,want:0},{lot:1000,ask:1020,stock:50,bid:980,want:150}]},
+  {id:'ice', name:'Ice', ab:'Ic', u:'kg', vol:0.37, rows:[{lot:1000,ask:10,stock:50,bid:9,want:150}]},
+  {id:'feore', name:'Iron Ore', ab:'Fe', u:'kg', vol:0.37, rows:[{lot:1,ask:10,stock:80000,bid:9,want:150000},{lot:1000,ask:10200,stock:80,bid:9800,want:150}]},
+  {id:'feing', name:'Iron Ingot', ab:'Fe', u:'kg', vol:0.127, rows:[{lot:1,ask:14,stock:50000,bid:13,want:150000},{lot:1000,ask:14484,stock:50,bid:13916,want:150}]},
+  {id:'niing', name:'Nickel Ingot', ab:'Ni', u:'kg', vol:0.112, rows:[{lot:1,ask:26,stock:20000,bid:25,want:60000},{lot:1000,ask:25500,stock:20,bid:24500,want:60}]},
+  {id:'plate', name:'Steel Plate', ab:'SP', u:'pcs', vol:3, rows:[{lot:1,ask:112,stock:4000,bid:104,want:2000}]},
+  {id:'motor', name:'Motor', ab:'Mo', u:'pcs', vol:8, rows:[{lot:1,ask:195,stock:500,bid:180,want:300}]},
+  {id:'h2', name:'Hydrogen', ab:'H₂', u:'m³', vol:0, gas:true, rows:[{lot:1,ask:40,stock:5000,bid:0,want:0}]},
+];
+const byId = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+
+// Example ships: containers with capacity (L) and contents (base units); tanks in m³ (1 Store unit of gas = 1,000 L).
+const SHIPS = [
+  {name:'Pelican - large grid, Connector 3', containers:[
+     {name:'Large Cargo Container 1', cap:421875, has:{feore:520000, stone:290000}},
+     {name:'Large Cargo Container 2', cap:421875, has:{stone:33500, motor:40}},
+     {name:'Connector', cap:8000, has:{}}],
+   tanks:[{name:'Hydrogen Tank 1', cap:15000, fill:6000},{name:'Hydrogen Tank 2', cap:15000, fill:12750}]},
+  {name:'Skiff - small grid, Connector 1', containers:[
+     {name:'Small Cargo Container', cap:15625, has:{ice:10810}},
+     {name:'Connector', cap:1152, has:{}}],
+   tanks:[{name:'Small Hydrogen Tank', cap:500, fill:50}]},
+  {name:'Character (your suit)', containers:[{name:'Character inventory', cap:400, has:{plate:20}}], tanks:[]},
+];
+let balance = 425000, ship = 0, tab = 'buy', lotMode = 'merged', selKey = null, qty = 0, toast = '', toastErr = false;
+
+const used = c => Object.entries(c.has).reduce((s,[k,q]) => s + q * byId[k].vol, 0);
+const have = (s, id) => s.containers.reduce((t,c) => t + (c.has[id]||0), 0);
+
+// Entries in the list: merged = one per item, separate = one per Store row (lots in their own units).
+function entries(){
+  const out = [];
+  for (const it of ITEMS) {
+    const rows = it.rows.filter(r => tab === 'buy' ? r.ask > 0 && r.stock > 0 : r.bid > 0 && r.want > 0);
+    if (!rows.length) continue;
+    if (tab === 'sell' && it.gas) continue;
+    if (lotMode === 'merged') out.push({key:it.id, it, rows});
+    else rows.forEach(r => out.push({key:it.id + '|' + r.lot, it, rows:[r], sepLot:r.lot > 1}));
+  }
+  return out;
+}
+
+// Splits q base units over the entry's rows at the best price. Returns {parts:[{row,n}], cost, q}.
+function price(e, q){
+  const key = tab === 'buy' ? 'ask' : 'bid', cap = tab === 'buy' ? 'stock' : 'want';
+  const lotRow = e.rows.find(r => r.lot > 1), one = e.rows.find(r => r.lot === 1);
+  let parts = [], left = q;
+  const lotBetter = lotRow && (!one || (tab === 'buy' ? lotRow[key]/lotRow.lot <= one[key] : lotRow[key]/lotRow.lot >= one[key]));
+  if (lotRow && (lotBetter || !one)) {
+    let n = Math.min(Math.floor(left / lotRow.lot), lotRow[cap]);
+    if (n) { parts.push({row:lotRow, n}); left -= n * lotRow.lot; }
+  }
+  if (one && left > 0) { const n = Math.min(left, one[cap]); if (n) { parts.push({row:one, n}); left -= n; } }
+  if (lotRow && !lotBetter && left >= lotRow.lot) { const n = Math.min(Math.floor(left/lotRow.lot), lotRow[cap]); if (n) { parts.push({row:lotRow, n}); left -= n*lotRow.lot; } }
+  return {parts, cost: parts.reduce((s,p) => s + p.n * p.row[key], 0), q: q - left, left};
+}
+const unitStep = e => e.rows.every(r => r.lot > 1) ? e.rows[0].lot : 1;
+
+// Where the goods go (buy) or come from (sell). Lots must fit whole into one container.
+function plan(e, pr){
+  const s = SHIPS[ship], it = e.it, res = [];
+  if (it.gas) {
+    let left = pr.q;
+    for (const t of s.tanks) { const n = Math.min(left, t.cap - t.fill); if (n > 0) { res.push({c:t, n}); left -= n; } }
+    return {res, left};
+  }
+  const free = s.containers.map(c => c.cap - used(c));
+  const take = s.containers.map(c => c.has[it.id] || 0);
+  let left = 0;
+  for (const p of pr.parts) {
+    for (let k = 0; k < p.n * (p.row.lot > 1 ? 1 : 0); k++) {
+      const i = tab === 'buy' ? free.findIndex(f => f >= p.row.lot * it.vol) : take.findIndex(h => h >= p.row.lot);
+      if (i < 0) { left += p.row.lot; continue; }
+      if (tab === 'buy') free[i] -= p.row.lot * it.vol; else take[i] -= p.row.lot;
+      add(res, s.containers[i], p.row.lot);
+    }
+    if (p.row.lot === 1) {
+      let n = p.n;
+      for (let i = 0; i < s.containers.length && n > 0; i++) {
+        const fit = tab === 'buy' ? Math.floor(free[i] / it.vol) : take[i];
+        const m = Math.min(n, fit); if (m <= 0) continue;
+        if (tab === 'buy') free[i] -= m * it.vol; else take[i] -= m;
+        add(res, s.containers[i], m); n -= m;
+      }
+      left += n;
+    }
+  }
+  return {res, left};
+}
+function add(res, c, n){ const r = res.find(x => x.c === c); if (r) r.n += n; else res.push({c, n}); }
+
+// Max amount: buy = least of stock, money, space; sell = least of what you have and what the Store wants.
+function maxQty(e){
+  const s = SHIPS[ship], it = e.it, step = unitStep(e);
+  let hi = e.rows.reduce((t,r) => t + r.lot * (tab === 'buy' ? r.stock : r.want), 0);
+  if (tab === 'sell') hi = Math.min(hi, have(s, it.id));
+  else if (it.gas) hi = Math.min(hi, s.tanks.reduce((t,k) => t + k.cap - k.fill, 0));
+  else hi = Math.min(hi, Math.floor(s.containers.reduce((t,c) => t + c.cap - used(c), 0) / it.vol));
+  hi -= hi % step;
+  let lo = 0, top = hi / step;
+  const ok = n => { const pr = price(e, n*step); if (pr.q < n*step) return false; if (tab === 'buy' && pr.cost > balance) return false; return plan(e, pr).left === 0; };
+  while (lo < top) { const mid = Math.ceil((lo + top) / 2); if (ok(mid)) lo = mid; else top = mid - 1; }
+  return lo * step;
+}
+
+const $ = id => document.getElementById(id);
+function render(){
+  const s = SHIPS[ship];
+  $('bal').textContent = fmt(balance) + ' SC';
+  const list = entries();
+  if (!list.find(e => e.key === selKey)) { selKey = list[0]?.key; qty = 0; }
+  const e = list.find(x => x.key === selKey);
+
+  const cu = s.containers.reduce((t,c) => t + used(c), 0), cc = s.containers.reduce((t,c) => t + c.cap, 0);
+  const pr = e ? price(e, qty) : null;
+  const addVol = e && tab === 'buy' && !e.it.gas ? pr.q * e.it.vol : 0;
+  $('cargoBar').style.width = (100*cu/cc) + '%';
+  $('cargoAdd').style.left = (100*cu/cc) + '%'; $('cargoAdd').style.width = Math.min(100, 100*addVol/cc) + '%';
+  $('cargoTxt').textContent = `Cargo: ${fmt(cu)} / ${fmt(cc)} L`;
+  const tu = s.tanks.reduce((t,k) => t + k.fill, 0), tc = s.tanks.reduce((t,k) => t + k.cap, 0);
+  const addGas = e && e.it.gas && tab === 'buy' ? pr.q : 0;
+  $('tankBar').style.width = tc ? (100*tu/tc) + '%' : '0';
+  $('tankAdd').style.left = tc ? (100*tu/tc) + '%' : '0'; $('tankAdd').style.width = tc ? Math.min(100, 100*addGas/tc) + '%' : '0';
+  $('tankTxt').textContent = tc ? `Hydrogen: ${fmt(tu)} / ${fmt(tc)} m³` : 'Hydrogen: no tanks';
+
+  $('thead').innerHTML = tab === 'buy'
+    ? '<div>Item</div><div>Price (SC)</div><div>In stock</div><div>Fits</div>'
+    : '<div>Item</div><div>Store pays (SC)</div><div>Store wants</div><div>You have</div>';
+  const tb = $('tbody'); tb.innerHTML = '';
+  for (const x of list) {
+    const tr = document.createElement('div'); tr.className = 'tr' + (x.key === selKey ? ' sel' : '');
+    const k = tab === 'buy' ? 'ask' : 'bid';
+    const name = x.it.name + (x.sepLot ? (x.it.u === 'kg' ? ' (1 t lot)' : ' (1,000 lot)') : '');
+    const priceTxt = x.rows.map(r => r.lot > 1 ? (lotMode === 'merged' ? `${fmt(r[k])} /t` : `${fmt(r[k])} /lot`) : `${fmt(r[k])} /${x.it.u === 'pcs' ? 'pc' : x.it.u}`).join(' · ');
+    const amt = x.rows.reduce((t,r) => t + r.lot * (tab === 'buy' ? r.stock : r.want), 0);
+    const amtTxt = x.sepLot ? fmt(x.rows[0][tab === 'buy' ? 'stock' : 'want']) + ' lots' : fmtQ(amt, x.it.u);
+    const last = tab === 'buy' ? maxQty(x) : have(s, x.it.id);
+    const lastTxt = !last ? '-' : x.sepLot && tab === 'buy' ? fmt(last / 1000) + ' lots' : fmtQ(last, x.it.u);
+    tr.innerHTML = `<div><span class="ic">${x.it.ab}</span>${name}</div><div>${priceTxt}</div><div class="dimc">${amtTxt}</div><div class="${last ? '' : 'nonec'}">${lastTxt}</div>`;
+    tr.onclick = () => { selKey = x.key; qty = 0; toast = ''; render(); };
+    tr.ondblclick = () => trade(x);
+    tb.appendChild(tr);
+  }
+
+  const all = tab === 'sell' ? list.filter(x => maxQty(x) > 0) : [];
+  const sum = all.reduce((t,x) => t + price(x, maxQty(x)).cost, 0);
+  $('foot').innerHTML = `<button class="btn" id="refresh">Refresh</button><button class="btn" title="Store owners: opens the game's own Store screen">Administration</button>` +
+    (tab === 'sell' ? `<button class="btn" id="sellAll" ${all.length ? '' : 'disabled'}>Sell all cargo: ${all.length} items, ${fmt(sum)} SC</button>` : '') +
+    `<div class="status ${toastErr ? 'err' : ''}">${toast}</div>`;
+  if (tab === 'sell') $('sellAll').onclick = () => { let got = 0; for (const x of all) { selKey = x.key; qty = maxQty(x); got += trade(x, true); } toast = `Sold ${all.length} items for ${fmt(got)} SC.`; toastErr = false; qty = 0; render(); };
+  renderPanel(e);
+}
+
+function renderPanel(e){
+  const p = $('panel');
+  if (!e) { p.innerHTML = '<span class="dimc">Nothing to trade here.</span>'; return; }
+  const s = SHIPS[ship], it = e.it, step = unitStep(e), mx = maxQty(e);
+  if (qty === 0) qty = Math.min(mx, step === 1 ? (it.u === 'kg' ? 1000 : it.u === 'm³' ? 100 : 10) : step);
+  const pr = price(e, qty), pl = plan(e, pr);
+  const sep = e.sepLot, shown = sep ? qty / 1000 : qty, unit = sep ? 'lots' : it.u;
+  const k = tab === 'buy' ? 'ask' : 'bid';
+
+  let presets;
+  if (sep) presets = [['1',1000],['5',5000],['10',10000],['50',50000]];
+  else if (it.gas) presets = [['10 m³',10],['100 m³',100],['1,000 m³',1000],['10,000 m³',10000]];
+  else if (it.u === 'kg') presets = step > 1 ? [['1 t',1000],['5 t',5000],['10 t',10000],['100 t',100000]] : [['100 kg',100],['1 t',1000],['10 t',10000],['100 t',100000]];
+  else presets = [['1',1],['10',10],['100',100],['1,000',1000]];
+  presets.push(['Half', Math.floor(mx / 2 / step) * step]);
+  presets.push([tab === 'buy' ? (it.gas ? 'Fill' : 'Fits') : 'All', mx]);
+
+  const lines = [];
+  for (const q of pr.parts) lines.push(`<li><span>${q.row.lot > 1 ? `${fmt(q.n)} × 1 t lot` : fmtQ(q.n, it.u)} × ${fmt(q.row[k])} SC</span><span>${fmt(q.n * q.row[k])} SC</span></li>`);
+  if (pr.left) lines.push(`<li class="warn"><span>${fmtQ(pr.left, it.u)} left over: ${tab === 'buy' ? 'sold' : 'bought'} only by the tonne</span><span></span></li>`);
+  lines.push(`<li class="tot"><span>Total</span><span>${fmt(pr.cost)} SC</span></li>`);
+  lines.push(`<li><span>Balance after</span><span>${fmt(balance + (tab === 'buy' ? -pr.cost : pr.cost))} SC</span></li>`);
+
+  const where = pl.res.map(r => `<li><span>${r.c.name}</span><span>${it.gas ? fmt(r.n) + ' m³' : `${fmtQ(r.n, it.u)}, ${fmt(r.n * it.vol)} L`}</span></li>`);
+  if (pl.left) where.push(`<li class="err"><span>${tab === 'buy' ? 'Does not fit' : 'Not on board'}</span><span>${fmtQ(pl.left, it.u)}</span></li>`);
+  const bad = qty <= 0 || pr.q < qty || pl.left > 0 || (tab === 'buy' && pr.cost > balance);
+  const verb = tab === 'buy' ? 'Buy' : 'Sell';
+  const onShip = it.gas ? fmt(s.tanks.reduce((t,k)=>t+k.fill,0)) + ' m³' : fmtQ(have(s, it.id), it.u);
+
+  p.innerHTML = `
+    <div class="head"><span class="ic">${it.ab}</span><div><b>${it.name}${sep ? ' (1 t lot)' : ''}</b>
+      <span>On your ship: ${onShip} · ${tab === 'buy' ? 'fits' : 'you can sell'}: ${fmtQ(mx, it.u)}</span></div></div>
+    <div class="amt"><button class="btn" id="minus" aria-label="Less">-</button>
+      <div class="box"><input id="q" inputmode="decimal" value="${fmt(shown)}" aria-label="Amount"><span>${unit}</span></div>
+      <button class="btn" id="plus" aria-label="More">+</button></div>
+    <div class="presets">${presets.map(([l,v]) => `<button class="btn" data-v="${v}" ${v > mx || v <= 0 ? 'disabled' : ''}>${l}</button>`).join('')}</div>
+    <div class="grp price"><h4>Price</h4><ul>${lines.join('')}</ul></div>
+    <div class="grp where"><h4>${tab === 'buy' ? 'Goes into' : 'Taken from'}</h4><ul>${where.join('') || '<li><span class="nonec">-</span><span></span></li>'}</ul></div>
+    <div class="go">
+      <button class="btn primary" id="go" ${bad ? 'disabled' : ''}>${verb} ${fmtQ(pr.q, it.u)} for ${fmt(pr.cost)} SC</button>
+      <button class="btn" id="goMax" ${mx ? '' : 'disabled'}>${tab === 'buy' ? (it.gas ? 'Fill tanks' : 'Buy what fits') : 'Sell all'}: ${fmtQ(mx, it.u)}</button>
+    </div>`;
+
+  const set = v => { qty = Math.max(0, Math.min(mx, Math.round(v / step) * step)); toast = ''; render(); };
+  const stepOf = q => step > 1 ? step : Math.max(it.u === 'kg' ? 100 : 1, Math.pow(10, Math.floor(Math.log10(Math.max(q, 1)))));
+  p.querySelector('#minus').onclick = () => set(qty - stepOf(qty - 1));
+  p.querySelector('#plus').onclick = () => set(qty + stepOf(qty));
+  const inp = p.querySelector('#q');
+  inp.onchange = () => { let t = inp.value.trim().toLowerCase().replace(/,/g, ''); let m = 1; if (t.endsWith('t') || t.endsWith('k')) { m = 1000; t = t.slice(0, -1); } const v = parseFloat(t) * m * (sep ? 1000 : 1); if (!isNaN(v)) set(v); };
+  p.querySelectorAll('.presets .btn').forEach(b => b.onclick = () => set(+b.dataset.v));
+  p.querySelector('#go').onclick = () => trade(e);
+  p.querySelector('#goMax').onclick = () => { qty = mx; trade(e); };
+}
+
+// Applies the trade to the example data, one "request" per container like the plugin would send.
+function trade(e, quiet){
+  const it = e.it, pr = price(e, qty), pl = plan(e, pr);
+  if (!pr.q || pr.q < qty || pl.left || (tab === 'buy' && pr.cost > balance)) { if (!quiet) { toast = 'Not possible: check the amount.'; toastErr = true; render(); } return 0; }
+  const cap = tab === 'buy' ? 'stock' : 'want';
+  for (const q of pr.parts) q.row[cap] -= q.n;
+  for (const r of pl.res) {
+    if (it.gas) r.c.fill += r.n;
+    else if (tab === 'buy') r.c.has[it.id] = (r.c.has[it.id] || 0) + r.n;
+    else { r.c.has[it.id] -= r.n; if (!r.c.has[it.id]) delete r.c.has[it.id]; }
+  }
+  balance += tab === 'buy' ? -pr.cost : pr.cost;
+  if (!quiet) { toast = `${tab === 'buy' ? 'Bought' : 'Sold'} ${fmtQ(pr.q, it.u)} of ${it.name} for ${fmt(pr.cost)} SC (${pl.res.length} request${pl.res.length > 1 ? 's' : ''}).`; toastErr = false; qty = 0; render(); }
+  return pr.cost;
+}
+
+const shipSel = $('ship');
+SHIPS.forEach((s, i) => shipSel.add(new Option(s.name, i)));
+shipSel.onchange = () => { ship = +shipSel.value; qty = 0; toast = ''; render(); };
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b)); selKey = null; qty = 0; toast = ''; render(); });
+$('merge').onchange = () => { lotMode = $('merge').checked ? 'merged' : 'separate'; selKey = null; qty = 0; toast = ''; render(); };
+render();
+</script>

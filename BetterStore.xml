@@ -5,23 +5,30 @@
     <Id>22C5F3D1-AE85-4FB1-96FB-E53E9ABBF035</Id>
 
     <!-- GitHub repository ID -->
-    <RepoId>todo-github-user/project-name</RepoId>
+    <RepoId>viktor-ferenczi/se-better-store</RepoId>
 
     <!-- The name of your plugin that will appear in the plugin list -->
-    <FriendlyName>TODO BetterStore</FriendlyName>
+    <FriendlyName>Better Store</FriendlyName>
 
     <!-- The author name that you want to appear in the plugin list -->
-    <Author>TODO Author Name</Author>
+    <Author>Viktor</Author>
 
     <!-- Optional tooltip for the plugin in the plugin list -->
-    <Tooltip>TODO Short description</Tooltip>
+    <Tooltip>A Store screen that trades with your whole ship: buy what fits, sell all, round amounts</Tooltip>
 
     <!-- Optional plugin description. If omitted, this will be the same as the Tooltip. 1000 characters max. -->
-    <Description>TODO Long description, multiple lines.
+    <Description>Replaces the screen of the Store block with one that is quicker to trade on.
 
-        This text is shown on the plugin details panel in a scrollable text box.
+        - Pick your docked ship instead of a cargo container. The plugin puts what you buy into the containers with room for it, and takes what you sell from the containers that hold it.
+        - Round amounts with one click: 100 kg, 1 t, 10 t, 100 t, half, or all that fits. Type "2.5t" if you want something else.
+        - Buy what fits: the most your cargo space, your money and the Store's stock allow.
+        - Sell all of an item, or all the cargo the Store wants, with one button.
+        - Gas offers fill your ship's tanks.
+        - Works with Stores that sell bulk goods in 1,000 kg lots next to single units, like Octahedron's.
 
-        You can use links here, players can click on them. For example, add a Discord invite.
+        Store owners still manage their Store on the game's own screen, behind the Administration button.
+
+        Report bugs on GitHub: https://github.com/viktor-ferenczi/se-better-store/issues
     </Description>
 
     <!-- Only source code in the Directory entries listed in SourceDirectories is compiled. Exclude any test projects or similar. -->
