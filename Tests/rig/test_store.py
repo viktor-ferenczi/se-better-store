@@ -412,6 +412,17 @@ def check_ship_access() -> None:
     rig.probe("trading off")
     listed("2. A ship at a connector with trading off is not listed", ["Character"])
     rig.probe("trading on")
+    # The Store of an NPC trades only with the player's own grids. The server lists a ship of
+    # the player's faction too, and then drops a trade with it without an answer.
+    rig.probe("mate on")
+    docked()
+    check(
+        "2. The server lists the ship of a faction mate",
+        int(rig.probe("listed")[0].split(" ")[1]) > 0,
+    )
+    listed("2. A faction mate's ship is not listed at an NPC's Store", ["Character"])
+    rig.probe("mate off")
+    docked()
     listed("2. The player's docked ship is listed again", ["BS Ship", "Character"])
 
 

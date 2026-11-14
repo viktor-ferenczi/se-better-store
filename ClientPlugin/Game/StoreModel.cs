@@ -69,6 +69,7 @@ internal sealed class StoreModel
 
     private readonly Queue<Step> steps = new Queue<Step>();
     private readonly Stopwatch waiting = new Stopwatch();
+    private Ship trading;
     private int requestNumber;
     private long tradedUnits;
     private long tradedMoney;
@@ -204,7 +205,10 @@ internal sealed class StoreModel
         var blocks = entityIds
             .Select(id => MyEntities.TryGetEntityById(id, out MyTerminalBlock block) ? block : null)
             .Where(block =>
-                block != null && block.HasLocalPlayerAccess() && docked.Contains(block.CubeGrid)
+                block != null
+                && block.HasLocalPlayerAccess()
+                && docked.Contains(block.CubeGrid)
+                && Trades(block.CubeGrid)
             );
         // A ship is all the grids mechanically joined to the docked one
         foreach (
@@ -238,6 +242,28 @@ internal sealed class StoreModel
             Ships.Add(suit);
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Whether the server trades with the grid. It lists the grids of the player's faction too,
+    /// but the Store of an NPC station trades only with a grid the player is a big owner of, and
+    /// drops a request for another one without an answer.
+    /// </summary>
+    private bool Trades(MyCubeGrid grid)
+    {
+        long player = MySession.Static.LocalPlayerId;
+        if (grid.BigOwners.Contains(player))
+            return true;
+        var factions = MySession.Static.Factions;
+        // A client may not know the stations, so a Store an NPC owns counts as one
+        if (
+            factions.GetStationByGridId(Store.CubeGrid.EntityId) != null
+            || MySession.Static.Players.IdentityIsNpc(Store.OwnerId)
+        )
+            return false;
+        var faction = factions.TryGetPlayerFaction(player);
+        return faction != null
+            && grid.BigOwners.Any(owner => factions.TryGetPlayerFaction(owner) == faction);
     }
 
     /// <summary>The grids docked to the Store's grid at a connector with trading on.</summary>
@@ -366,6 +392,7 @@ internal sealed class StoreModel
     {
         if (Trading || trades.Count == 0)
             return false;
+        trading = ship;
         long balance = Balance;
         var planned = new List<Step>();
         var usage = new Usage();
@@ -486,7 +513,11 @@ internal sealed class StoreModel
     public void Update()
     {
         if (waiting.IsRunning && waiting.Elapsed.TotalSeconds > AnswerTimeoutSeconds)
-            Fail("The server did not answer the request.");
+            Fail(
+                "The server did not answer. It may not allow you to trade with "
+                    + (trading?.IsCharacter == false ? trading.Name : "this Store")
+                    + "."
+            );
     }
 
     private void Fail(string reason)
