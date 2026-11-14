@@ -17,12 +17,24 @@ namespace ClientPlugin.Patches;
 public static class StoreUsePatch
 {
     // ReSharper disable once UnusedMember.Local
-    private static bool Prefix(MyUseObjectStoreBlock __instance, UseActionEnum actionEnum, IMyEntity userEntity)
+    private static bool Prefix(
+        MyUseObjectStoreBlock __instance,
+        UseActionEnum actionEnum,
+        IMyEntity userEntity
+    )
     {
         // The screen has no gamepad control: with a gamepad the game's own screen opens
-        if (!Config.Current.Enabled || actionEnum != UseActionEnum.Manipulate || MyInput.Static.IsJoystickLastUsed)
+        if (
+            !Config.Current.Enabled
+            || actionEnum != UseActionEnum.Manipulate
+            || MyInput.Static.IsJoystickLastUsed
+        )
             return true;
-        if (!(userEntity is MyCharacter character) || !(__instance.Owner is MyStoreBlock store) || !store.IsWorking)
+        if (
+            !(userEntity is MyCharacter character)
+            || !(__instance.Owner is MyStoreBlock store)
+            || !store.IsWorking
+        )
             return true;
         // The game's own access check. Where it fails, the game says so
         long identityId = character.ControllerInfo?.Controller?.Player?.Identity?.IdentityId ?? 0;

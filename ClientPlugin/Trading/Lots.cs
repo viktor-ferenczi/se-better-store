@@ -52,7 +52,11 @@ public static class Lots
                 if (rowsOfSide.Count != 1 || rowsOfSide[0].Side == lot.Side)
                     continue;
                 var lone = rowsOfSide[0];
-                if (lone.Price >= lot.Price / 2 && lone.Price <= lot.Price * 3L / 2 && lone.Price > unit.Price * 100L)
+                if (
+                    lone.Price >= lot.Price / 2
+                    && lone.Price <= lot.Price * 3L / 2
+                    && lone.Price > unit.Price * 100L
+                )
                     lone.Lot = GuessedLot;
             }
         }

@@ -42,10 +42,16 @@ internal sealed class StoreModel
     private const double AnswerTimeoutSeconds = 10;
 
     // The buy request is internal to the game, unlike the sell request
-    private static readonly Action<MyStoreBlock, long, int, long, double, Action<MyStoreBuyItemResult>> CreateBuyRequest =
-        AccessTools.MethodDelegate<Action<MyStoreBlock, long, int, long, double, Action<MyStoreBuyItemResult>>>(
-            AccessTools.Method(typeof(MyStoreBlock), "CreateBuyRequest")
-        );
+    private static readonly Action<
+        MyStoreBlock,
+        long,
+        int,
+        long,
+        double,
+        Action<MyStoreBuyItemResult>
+    > CreateBuyRequest = AccessTools.MethodDelegate<
+        Action<MyStoreBlock, long, int, long, double, Action<MyStoreBuyItemResult>>
+    >(AccessTools.Method(typeof(MyStoreBlock), "CreateBuyRequest"));
 
     private sealed class Step
     {
@@ -193,16 +199,29 @@ internal sealed class StoreModel
             .Select(id => MyEntities.TryGetEntityById(id, out MyCubeBlock block) ? block : null)
             .Where(block => block != null);
         // A ship is all the grids mechanically joined to the docked one
-        foreach (var group in blocks.GroupBy(b => (object)MyCubeGridGroups.Static.Mechanical.GetGroup(b.CubeGrid) ?? b.CubeGrid))
+        foreach (
+            var group in blocks.GroupBy(b =>
+                (object)MyCubeGridGroups.Static.Mechanical.GetGroup(b.CubeGrid) ?? b.CubeGrid
+            )
+        )
         {
             var ship = new Ship
             {
-                Name = group.Select(b => b.CubeGrid).Distinct().OrderByDescending(g => g.BlocksCount).First().DisplayName,
+                Name = group
+                    .Select(b => b.CubeGrid)
+                    .Distinct()
+                    .OrderByDescending(g => g.BlocksCount)
+                    .First()
+                    .DisplayName,
             };
-            ship.Inventories.AddRange(group.OrderBy(b => b.DisplayNameText, StringComparer.InvariantCultureIgnoreCase));
+            ship.Inventories.AddRange(
+                group.OrderBy(b => b.DisplayNameText, StringComparer.InvariantCultureIgnoreCase)
+            );
             Ships.Add(ship);
         }
-        Ships.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.InvariantCultureIgnoreCase));
+        Ships.Sort(
+            (a, b) => string.Compare(a.Name, b.Name, StringComparison.InvariantCultureIgnoreCase)
+        );
         var character = MySession.Static.LocalCharacter;
         if (character != null)
         {
@@ -225,7 +244,14 @@ internal sealed class StoreModel
             // A bought ship appears next to the Store; the request only needs the buyer
             var character = MySession.Static.LocalCharacter;
             if (character != null)
-                slots.Add(new Slot { EntityId = character.EntityId, Name = "Next to the Store", Room = entry.Available });
+                slots.Add(
+                    new Slot
+                    {
+                        EntityId = character.EntityId,
+                        Name = "Next to the Store",
+                        Room = entry.Available,
+                    }
+                );
             return slots;
         }
         foreach (var entity in ship.Inventories)
@@ -368,7 +394,13 @@ internal sealed class StoreModel
                 step.Count,
                 step.EntityId,
                 economyTick,
-                result => OnAnswer(number, result.Result == MyStoreBuyItemResults.Success, "Buy", result.Result.ToString())
+                result =>
+                    OnAnswer(
+                        number,
+                        result.Result == MyStoreBuyItemResults.Success,
+                        "Buy",
+                        result.Result.ToString()
+                    )
             );
         else
             Store.CreateSellItemRequest(
@@ -376,7 +408,13 @@ internal sealed class StoreModel
                 step.Count,
                 step.EntityId,
                 economyTick,
-                result => OnAnswer(number, result.Result == MyStoreSellItemResults.Success, "Sell", result.Result.ToString())
+                result =>
+                    OnAnswer(
+                        number,
+                        result.Result == MyStoreSellItemResults.Success,
+                        "Sell",
+                        result.Result.ToString()
+                    )
             );
     }
 

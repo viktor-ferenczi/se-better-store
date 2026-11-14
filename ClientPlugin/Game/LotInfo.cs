@@ -61,8 +61,18 @@ internal static class LotInfo
             var fields = lines[i].Trim().Split(' ');
             if (
                 fields.Length == 2
-                && long.TryParse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long id)
-                && int.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int lot)
+                && long.TryParse(
+                    fields[0],
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out long id
+                )
+                && int.TryParse(
+                    fields[1],
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int lot
+                )
                 && lot > 1
             )
                 received[id] = lot;

@@ -143,7 +143,14 @@ internal sealed class StoreScreen : MyGuiScreenBase
     {
         base.RecreateControls(constructor);
         var grid = model.Store.CubeGrid;
-        AddCaption("Store - " + (string.IsNullOrEmpty(grid?.DisplayName) ? model.Store.DisplayNameText : grid.DisplayName));
+        AddCaption(
+            "Store - "
+                + (
+                    string.IsNullOrEmpty(grid?.DisplayName)
+                        ? model.Store.DisplayNameText
+                        : grid.DisplayName
+                )
+        );
 
         // Top row: the ship, its cargo and hydrogen, the balance
         Label(Left, -0.352f, "Your ship", Dim);
@@ -162,14 +169,40 @@ internal sealed class StoreScreen : MyGuiScreenBase
         cargoBar = Bar(-0.15f, -0.318f, 0.21f);
         hydrogenLabel = Label(0.09f, -0.352f, "", Dim);
         hydrogenBar = Bar(0.09f, -0.318f, 0.21f);
-        Label(Right, -0.352f, "Balance", Dim, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
-        balanceLabel = Label(Right, -0.32f, "", White, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER, 0.95f);
+        Label(
+            Right,
+            -0.352f,
+            "Balance",
+            Dim,
+            MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+        );
+        balanceLabel = Label(
+            Right,
+            -0.32f,
+            "",
+            White,
+            MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER,
+            0.95f
+        );
         balanceLabel.Name = "BetterStoreBalance";
 
         // Tabs and the lot checkbox
         buyTab = Button(Left, -0.268f, 0.1f, "Buy", () => SetSide(Side.Buy), "BetterStoreBuyTab");
-        sellTab = Button(Left + 0.104f, -0.268f, 0.1f, "Sell", () => SetSide(Side.Sell), "BetterStoreSellTab");
-        Label(Right, -0.268f, "Merge lots into their item", White, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
+        sellTab = Button(
+            Left + 0.104f,
+            -0.268f,
+            0.1f,
+            "Sell",
+            () => SetSide(Side.Sell),
+            "BetterStoreSellTab"
+        );
+        Label(
+            Right,
+            -0.268f,
+            "Merge lots into their item",
+            White,
+            MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+        );
         mergeBox = new MyGuiControlCheckbox(
             new Vector2(Right - 0.215f, -0.268f),
             isChecked: Config.Current.MergeLots,
@@ -200,10 +233,24 @@ internal sealed class StoreScreen : MyGuiScreenBase
         for (int column = 2; column < 5; column++)
         {
             table.SetColumnAlign(column, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
-            table.SetHeaderColumnAlign(column, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
-            table.SetColumnComparison(column, (a, b) => ((double)a.UserData).CompareTo((double)b.UserData));
+            table.SetHeaderColumnAlign(
+                column,
+                MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+            );
+            table.SetColumnComparison(
+                column,
+                (a, b) => ((double)a.UserData).CompareTo((double)b.UserData)
+            );
         }
-        table.SetColumnComparison(1, (a, b) => string.Compare(a.Text.ToString(), b.Text.ToString(), StringComparison.CurrentCultureIgnoreCase));
+        table.SetColumnComparison(
+            1,
+            (a, b) =>
+                string.Compare(
+                    a.Text.ToString(),
+                    b.Text.ToString(),
+                    StringComparison.CurrentCultureIgnoreCase
+                )
+        );
         table.ItemSelected += (source, args) => OnRowSelected();
         table.ItemDoubleClicked += (source, args) => Trade(amount);
         Controls.Add(table);
@@ -226,7 +273,14 @@ internal sealed class StoreScreen : MyGuiScreenBase
         };
         Controls.Add(amountBox);
         unitLabel = Label(PanelLeft + 0.295f, -0.148f, "", Dim);
-        Button(Right - 0.035f, -0.148f, 0.035f, "+", () => SetAmount(amount + Step(amount)), "BetterStoreMore");
+        Button(
+            Right - 0.035f,
+            -0.148f,
+            0.035f,
+            "+",
+            () => SetAmount(amount + Step(amount)),
+            "BetterStoreMore"
+        );
 
         float presetWidth = (Right - PanelLeft - 0.004f * (Presets - 1)) / Presets;
         for (int i = 0; i < Presets; i++)
@@ -246,26 +300,75 @@ internal sealed class StoreScreen : MyGuiScreenBase
         for (int i = 0; i < PriceLines; i++)
         {
             priceNames[i] = Label(PanelLeft, -0.03f + i * 0.026f, "", White);
-            priceValues[i] = Label(Right, -0.03f + i * 0.026f, "", White, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
+            priceValues[i] = Label(
+                Right,
+                -0.03f + i * 0.026f,
+                "",
+                White,
+                MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+            );
         }
         slotsTitle = Label(PanelLeft, 0.09f, "", Dim);
         for (int i = 0; i < SlotLines; i++)
         {
             slotNames[i] = Label(PanelLeft, 0.118f + i * 0.026f, "", White);
-            slotValues[i] = Label(Right, 0.118f + i * 0.026f, "", White, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
+            slotValues[i] = Label(
+                Right,
+                0.118f + i * 0.026f,
+                "",
+                White,
+                MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+            );
         }
 
-        tradeButton = Button(PanelLeft, 0.275f, 0.232f, "", () => Trade(amount), "BetterStoreTrade");
-        maxButton = Button(PanelLeft + 0.236f, 0.275f, Right - PanelLeft - 0.236f, "", () => Trade(max), "BetterStoreTradeMax");
+        tradeButton = Button(
+            PanelLeft,
+            0.275f,
+            0.232f,
+            "",
+            () => Trade(amount),
+            "BetterStoreTrade"
+        );
+        maxButton = Button(
+            PanelLeft + 0.236f,
+            0.275f,
+            Right - PanelLeft - 0.236f,
+            "",
+            () => Trade(max),
+            "BetterStoreTradeMax"
+        );
 
         // Bottom row
         Button(Left, 0.39f, 0.11f, "Refresh", model.Refresh, "BetterStoreRefresh");
-        var administration = Button(Left + 0.114f, 0.39f, 0.14f, "Administration", OpenVanilla, "BetterStoreAdministration");
-        administration.SetToolTip("Opens the game's own Store screen, where the owner sets the offers and orders.");
+        var administration = Button(
+            Left + 0.114f,
+            0.39f,
+            0.14f,
+            "Administration",
+            OpenVanilla,
+            "BetterStoreAdministration"
+        );
+        administration.SetToolTip(
+            "Opens the game's own Store screen, where the owner sets the offers and orders."
+        );
         administration.Visible =
-            model.Store.HasLocalPlayerAccess() && model.Store.OwnerId == MySession.Static.LocalPlayerId;
-        sellAllButton = Button(Left + 0.258f, 0.39f, 0.287f, "", ConfirmSellAllCargo, "BetterStoreSellAllCargo");
-        statusLabel = Label(Right, 0.39f, "", Good, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
+            model.Store.HasLocalPlayerAccess()
+            && model.Store.OwnerId == MySession.Static.LocalPlayerId;
+        sellAllButton = Button(
+            Left + 0.258f,
+            0.39f,
+            0.287f,
+            "",
+            ConfirmSellAllCargo,
+            "BetterStoreSellAllCargo"
+        );
+        statusLabel = Label(
+            Right,
+            0.39f,
+            "",
+            Good,
+            MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER
+        );
         statusLabel.Name = "BetterStoreStatus";
 
         Rebuild();
@@ -280,7 +383,13 @@ internal sealed class StoreScreen : MyGuiScreenBase
         float scale = 0.8f
     )
     {
-        var label = new MyGuiControlLabel(new Vector2(x, y), text: text, colorMask: color, textScale: scale, originAlign: align);
+        var label = new MyGuiControlLabel(
+            new Vector2(x, y),
+            text: text,
+            colorMask: color,
+            textScale: scale,
+            originAlign: align
+        );
         Controls.Add(label);
         return label;
     }
@@ -299,7 +408,14 @@ internal sealed class StoreScreen : MyGuiScreenBase
         return bar;
     }
 
-    private MyGuiControlButton Button(float x, float y, float width, string text, Action onClick, string name)
+    private MyGuiControlButton Button(
+        float x,
+        float y,
+        float width,
+        string text,
+        Action onClick,
+        string name
+    )
     {
         var button = new MyGuiControlButton(
             new Vector2(x, y),
@@ -318,12 +434,16 @@ internal sealed class StoreScreen : MyGuiScreenBase
 
     // --- state ---
 
-    private Ship Ship => shipIndex >= 0 && shipIndex < model.Ships.Count ? model.Ships[shipIndex] : null;
+    private Ship Ship =>
+        shipIndex >= 0 && shipIndex < model.Ships.Count ? model.Ships[shipIndex] : null;
 
     private Listing Listing => selected == null ? null : model.ListingOf(selected);
 
     /// <summary>A line of lots shown on its own counts in lots; every other line in units of the item.</summary>
-    private int Scale => selected != null && selected.Unit == null && !Config.Current.MergeLots ? selected.LotRow.Lot : 1;
+    private int Scale =>
+        selected != null && selected.Unit == null && !Config.Current.MergeLots
+            ? selected.LotRow.Lot
+            : 1;
 
     private void OnModelChanged()
     {
@@ -410,16 +530,45 @@ internal sealed class StoreScreen : MyGuiScreenBase
             var listing = model.ListingOf(entry);
             bool lots = entry.Unit == null && !Config.Current.MergeLots;
             int scale = lots ? entry.LotRow.Lot : 1;
-            var room = ship == null ? new List<long>() : model.Slots(entry, ship).Select(s => s.Room).ToList();
-            long last = buying ? Planner.Max(entry, room, balance) : Math.Min(room.Sum(), int.MaxValue);
+            var room =
+                ship == null
+                    ? new List<long>()
+                    : model.Slots(entry, ship).Select(s => s.Room).ToList();
+            long last = buying
+                ? Planner.Max(entry, room, balance)
+                : Math.Min(room.Sum(), int.MaxValue);
             double price = (entry.Unit ?? entry.LotRow).PricePerItem;
 
             var row = new MyGuiControlTable.Row(entry);
-            row.AddCell(new MyGuiControlTable.Cell("", icon: Icon(listing.Icon), iconOriginAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER));
-            row.AddCell(new MyGuiControlTable.Cell(lots ? $"{listing.Name} ({LotName(entry.LotRow.Lot, listing.Unit)})" : listing.Name));
+            row.AddCell(
+                new MyGuiControlTable.Cell(
+                    "",
+                    icon: Icon(listing.Icon),
+                    iconOriginAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER
+                )
+            );
+            row.AddCell(
+                new MyGuiControlTable.Cell(
+                    lots
+                        ? $"{listing.Name} ({LotName(entry.LotRow.Lot, listing.Unit)})"
+                        : listing.Name
+                )
+            );
             row.AddCell(new MyGuiControlTable.Cell(PriceText(entry, listing, lots), price));
-            row.AddCell(new MyGuiControlTable.Cell(Shown(entry.Available, listing.Unit, scale), (double)entry.Available, textColor: new Color(Dim)));
-            row.AddCell(new MyGuiControlTable.Cell(last == 0 ? "-" : Shown(last, listing.Unit, scale), (double)last, textColor: last == 0 ? new Color(Dim) : (Color?)null));
+            row.AddCell(
+                new MyGuiControlTable.Cell(
+                    Shown(entry.Available, listing.Unit, scale),
+                    (double)entry.Available,
+                    textColor: new Color(Dim)
+                )
+            );
+            row.AddCell(
+                new MyGuiControlTable.Cell(
+                    last == 0 ? "-" : Shown(last, listing.Unit, scale),
+                    (double)last,
+                    textColor: last == 0 ? new Color(Dim) : (Color?)null
+                )
+            );
             table.Add(row);
         }
         table.Sort(switchSort: false);
@@ -449,18 +598,24 @@ internal sealed class StoreScreen : MyGuiScreenBase
         unit == Unit.Kg && lot == 1000 ? "1 t lot" : Amounts.Number(lot) + " lot";
 
     private static string Shown(long units, Unit unit, int scale) =>
-        scale > 1 ? Amounts.Number(units / scale) + (units / scale == 1 ? " lot" : " lots") : Amounts.Format(units, unit);
+        scale > 1
+            ? Amounts.Number(units / scale) + (units / scale == 1 ? " lot" : " lots")
+            : Amounts.Format(units, unit);
 
     private static string PriceText(Entry entry, Listing listing, bool lots)
     {
-        string per = listing.Unit == Unit.Kg ? "kg" : listing.Unit == Unit.Gas ? "m³" : "pc";
+        string per =
+            listing.Unit == Unit.Kg ? "kg"
+            : listing.Unit == Unit.Gas ? "m³"
+            : "pc";
         var parts = new List<string>();
         if (entry.Unit != null)
             parts.Add($"{Amounts.Number(entry.Unit.ShownPrice)} /{per}");
         if (entry.LotRow != null)
             parts.Add(
                 lots ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /lot"
-                : listing.Unit == Unit.Kg && entry.LotRow.Lot == 1000 ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /t"
+                : listing.Unit == Unit.Kg && entry.LotRow.Lot == 1000
+                    ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /t"
                 : $"{Amounts.Number(entry.LotRow.ShownPrice)} /{Amounts.Number(entry.LotRow.Lot)}"
             );
         return string.Join(" · ", parts);
@@ -468,9 +623,13 @@ internal sealed class StoreScreen : MyGuiScreenBase
 
     // --- the amount ---
 
-    private long Step(long at) => Amounts.StepAt(at / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1) * Scale;
+    private long Step(long at) =>
+        Amounts.StepAt(at / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1)
+        * Scale;
 
-    private long StepDown() => Amounts.StepDown(amount / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1) * Scale;
+    private long StepDown() =>
+        Amounts.StepDown(amount / Scale, Listing?.Unit ?? Unit.Pieces, selected?.Step / Scale ?? 1)
+        * Scale;
 
     private void SetAmount(long units)
     {
@@ -522,10 +681,15 @@ internal sealed class StoreScreen : MyGuiScreenBase
         long cost = quote.Cost;
         bool possible = !model.Trading && Planner.Possible(selected, amount, room, balance);
 
-        itemLabel.Text = scale > 1 ? $"{listing.Name} ({LotName(scale, listing.Unit)})" : listing.Name;
+        itemLabel.Text =
+            scale > 1 ? $"{listing.Name} ({LotName(scale, listing.Unit)})" : listing.Name;
         long onShip = buying ? model.Held(ship, selected) : room.Sum();
         infoLabel.Text =
-            (listing.IsGas || listing.IsGrid ? "" : $"On your ship: {Amounts.Format(onShip, listing.Unit)} · ")
+            (
+                listing.IsGas || listing.IsGrid
+                    ? ""
+                    : $"On your ship: {Amounts.Format(onShip, listing.Unit)} · "
+            )
             + (buying ? "fits: " : "you can sell: ")
             + Shown(max, listing.Unit, scale);
         if (!amountBox.HasFocus)
@@ -539,24 +703,36 @@ internal sealed class StoreScreen : MyGuiScreenBase
         foreach (var part in quote.Parts)
             lines.Add(
                 new KeyValuePair<string, string>(
-                    (part.Row.Lot > 1 ? $"{Amounts.Number(part.Count)} × {LotName(part.Row.Lot, listing.Unit)}" : Amounts.Format(part.Count, listing.Unit))
-                        + $" × {Amounts.Number(part.Row.ShownPrice)} SC",
+                    (
+                        part.Row.Lot > 1
+                            ? $"{Amounts.Number(part.Count)} × {LotName(part.Row.Lot, listing.Unit)}"
+                            : Amounts.Format(part.Count, listing.Unit)
+                    ) + $" × {Amounts.Number(part.Row.ShownPrice)} SC",
                     Amounts.Number(part.Row.Cost(part.Count)) + " SC"
                 )
             );
         while (lines.Count > 2)
             lines.RemoveAt(lines.Count - 1);
         lines.Add(new KeyValuePair<string, string>("Total", Amounts.Number(cost) + " SC"));
-        lines.Add(new KeyValuePair<string, string>("Balance after", Amounts.Number(balance + (buying ? -cost : cost)) + " SC"));
+        lines.Add(
+            new KeyValuePair<string, string>(
+                "Balance after",
+                Amounts.Number(balance + (buying ? -cost : cost)) + " SC"
+            )
+        );
         for (int i = 0; i < PriceLines; i++)
         {
             priceNames[i].Text = i < lines.Count ? lines[i].Key : "";
             priceValues[i].Text = i < lines.Count ? lines[i].Value : "";
-            priceValues[i].ColorMask = buying && i == lines.Count - 1 && cost > balance ? Bad : White;
+            priceValues[i].ColorMask =
+                buying && i == lines.Count - 1 && cost > balance ? Bad : White;
         }
 
         // Where it goes
-        slotsTitle.Text = listing.IsGrid ? "Delivered" : buying ? "Goes into" : "Taken from";
+        slotsTitle.Text =
+            listing.IsGrid ? "Delivered"
+            : buying ? "Goes into"
+            : "Taken from";
         var placed = requests
             .GroupBy(r => r.Slot)
             .Select(g => new KeyValuePair<string, string>(
@@ -565,7 +741,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
             ))
             .ToList();
         if (listing.IsGrid)
-            placed = new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Next to the Store", "") };
+            placed = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("Next to the Store", ""),
+            };
         bool missing = unplaced > 0 || quote.Left > 0;
         int shownSlots = missing ? SlotLines - 1 : SlotLines;
         if (placed.Count > shownSlots)
@@ -588,16 +767,22 @@ internal sealed class StoreScreen : MyGuiScreenBase
                 unplaced > 0 ? (buying ? "Does not fit" : "Not on board")
                 : buying ? "Not in stock, or less than a lot"
                 : "Not wanted, or less than a lot";
-            slotValues[line].Text = Amounts.Format(unplaced > 0 ? unplaced : quote.Left, listing.Unit);
+            slotValues[line].Text = Amounts.Format(
+                unplaced > 0 ? unplaced : quote.Left,
+                listing.Unit
+            );
             slotNames[line].ColorMask = Bad;
             slotValues[line].ColorMask = Bad;
         }
 
         string verb = buying ? "Buy" : "Sell";
-        tradeButton.Text = $"{verb} {Amounts.Format(quote.Amount, listing.Unit)} for {Amounts.Number(cost)} SC";
+        tradeButton.Text =
+            $"{verb} {Amounts.Format(quote.Amount, listing.Unit)} for {Amounts.Number(cost)} SC";
         tradeButton.Enabled = possible;
         maxButton.Text =
-            (buying ? (listing.IsGas ? "Fill tanks" : "Buy what fits") : "Sell all") + ": " + Amounts.Format(max, listing.Unit);
+            (buying ? (listing.IsGas ? "Fill tanks" : "Buy what fits") : "Sell all")
+            + ": "
+            + Amounts.Format(max, listing.Unit);
         maxButton.Enabled = !model.Trading && max > 0;
 
         UpdateGauges(ship, buying && !listing.IsGrid ? quote.Amount : 0, listing);
@@ -606,7 +791,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
 
     private void ShowNothing(Ship ship)
     {
-        itemLabel.Text = model.Loading ? "Loading..." : ship == null ? "No ship is docked for trading" : "Nothing to trade here";
+        itemLabel.Text =
+            model.Loading ? "Loading..."
+            : ship == null ? "No ship is docked for trading"
+            : "Nothing to trade here";
         infoLabel.Text = "";
         unitLabel.Text = "";
         if (!amountBox.HasFocus)
@@ -649,8 +837,12 @@ internal sealed class StoreScreen : MyGuiScreenBase
         else if (listing.Unit == Unit.Kg)
         {
             bool lotsOnly = selected.Step > 1;
-            amounts = lotsOnly ? new long[] { 1000, 5000, 10000, 100000 } : new long[] { 100, 1000, 10000, 100000 };
-            names = lotsOnly ? new[] { "1 t", "5 t", "10 t", "100 t" } : new[] { "100 kg", "1 t", "10 t", "100 t" };
+            amounts = lotsOnly
+                ? new long[] { 1000, 5000, 10000, 100000 }
+                : new long[] { 100, 1000, 10000, 100000 };
+            names = lotsOnly
+                ? new[] { "1 t", "5 t", "10 t", "100 t" }
+                : new[] { "100 kg", "1 t", "10 t", "100 t" };
         }
         else
         {
@@ -677,19 +869,35 @@ internal sealed class StoreScreen : MyGuiScreenBase
     private void UpdateGauges(Ship ship, long buying, Listing listing)
     {
         StoreModel.Cargo(ship, out double used, out double capacity);
-        cargoLabel.Text = $"Cargo: {Amounts.Number((long)used)} / {Amounts.Number((long)capacity)} L";
-        Gauge(cargoBar, used, capacity, listing != null && !listing.IsGas ? buying * listing.Volume : 0);
+        cargoLabel.Text =
+            $"Cargo: {Amounts.Number((long)used)} / {Amounts.Number((long)capacity)} L";
+        Gauge(
+            cargoBar,
+            used,
+            capacity,
+            listing != null && !listing.IsGas ? buying * listing.Volume : 0
+        );
 
         StoreModel.Hydrogen(ship, out double filled, out double tanks);
-        hydrogenLabel.Text = tanks > 0
-            ? $"Hydrogen: {Amounts.Number((long)(filled / 1000))} / {Amounts.Number((long)(tanks / 1000))} m³"
-            : "Hydrogen: no tanks";
-        bool hydrogen = listing != null && listing.IsGas && listing.Id == Sandbox.Game.Entities.Character.Components.MyCharacterOxygenComponent.HydrogenId;
+        hydrogenLabel.Text =
+            tanks > 0
+                ? $"Hydrogen: {Amounts.Number((long)(filled / 1000))} / {Amounts.Number((long)(tanks / 1000))} m³"
+                : "Hydrogen: no tanks";
+        bool hydrogen =
+            listing != null
+            && listing.IsGas
+            && listing.Id
+                == Sandbox.Game.Entities.Character.Components.MyCharacterOxygenComponent.HydrogenId;
         Gauge(hydrogenBar, filled, tanks, hydrogen ? buying * 1000.0 : 0);
     }
 
     // The bar shows what is there; its second, green part shows what the trade would add
-    private static void Gauge(MyGuiControlProgressBar bar, double value, double capacity, double added)
+    private static void Gauge(
+        MyGuiControlProgressBar bar,
+        double value,
+        double capacity,
+        double added
+    )
     {
         bar.Value = capacity > 0 ? (float)(value / capacity) : 0f;
         float more = capacity > 0 ? (float)Math.Min(added / capacity, 1.0 - bar.Value) : 0f;
@@ -723,7 +931,11 @@ internal sealed class StoreScreen : MyGuiScreenBase
             return trades;
         foreach (var entry in entries)
         {
-            long most = Planner.Max(entry, model.Slots(entry, ship).Select(s => s.Room).ToList(), 0);
+            long most = Planner.Max(
+                entry,
+                model.Slots(entry, ship).Select(s => s.Room).ToList(),
+                0
+            );
             if (most > 0)
                 trades.Add(new KeyValuePair<Entry, long>(entry, most));
         }
@@ -736,9 +948,10 @@ internal sealed class StoreScreen : MyGuiScreenBase
         sellAllButton.Visible = side == Side.Sell;
         sellAllButton.Enabled = !model.Trading && trades.Count != 0;
         long total = trades.Sum(t => Planner.Split(t.Key, t.Value).Cost);
-        sellAllButton.Text = trades.Count == 0
-            ? "Sell all cargo"
-            : $"Sell all cargo: {trades.Count} item{(trades.Count == 1 ? "" : "s")}, {Amounts.Number(total)} SC";
+        sellAllButton.Text =
+            trades.Count == 0
+                ? "Sell all cargo"
+                : $"Sell all cargo: {trades.Count} item{(trades.Count == 1 ? "" : "s")}, {Amounts.Number(total)} SC";
     }
 
     private void ConfirmSellAllCargo()
@@ -774,7 +987,9 @@ internal sealed class StoreScreen : MyGuiScreenBase
         if (service == null)
             return;
         service.IsAnyScreenOpen = true;
-        var screen = MyGuiSandbox.CreateScreen<MyGuiScreenStoreBlock>(new MyStoreBlockViewModel(store));
+        var screen = MyGuiSandbox.CreateScreen<MyGuiScreenStoreBlock>(
+            new MyStoreBlockViewModel(store)
+        );
         screen.Closed += (source, isUnloading) => service.IsAnyScreenOpen = false;
         MyGuiSandbox.AddScreen(screen);
     }

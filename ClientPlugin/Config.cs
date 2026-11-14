@@ -19,7 +19,9 @@ public class Config : INotifyPropertyChanged
 
     public readonly string Title = "Better Store";
 
-    [Checkbox(description: "Opens the Better Store screen at Store blocks. Turn it off to get the game's own Store screen.")]
+    [Checkbox(
+        description: "Opens the Better Store screen at Store blocks. Turn it off to get the game's own Store screen."
+    )]
     public bool Enabled
     {
         get => enabled;

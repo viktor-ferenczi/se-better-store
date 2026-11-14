@@ -49,7 +49,8 @@ internal sealed class Listing
                     Name = definition.DisplayNameText,
                     Icon = FirstIcon(definition.Icons),
                     Unit =
-                        id.TypeId == typeof(MyObjectBuilder_Ore) || id.TypeId == typeof(MyObjectBuilder_Ingot)
+                        id.TypeId == typeof(MyObjectBuilder_Ore)
+                        || id.TypeId == typeof(MyObjectBuilder_Ingot)
                             ? Unit.Kg
                             : Unit.Pieces,
                     Id = id,
@@ -73,7 +74,10 @@ internal sealed class Listing
             {
                 if (
                     item.Item == null
-                    || !MyDefinitionManager.Static.TryGetGasPropertyDefinition(item.Item.Value, out var gas)
+                    || !MyDefinitionManager.Static.TryGetGasPropertyDefinition(
+                        item.Item.Value,
+                        out var gas
+                    )
                 )
                     return null;
                 return Gas(item.Item.Value, gas.DisplayNameText, FirstIcon(gas.Icons));
@@ -82,7 +86,11 @@ internal sealed class Listing
             {
                 var prefab = MyDefinitionManager.Static.GetPrefabDefinition(item.PrefabName);
                 string name = prefab?.DisplayNameString;
-                if (string.IsNullOrEmpty(name) && prefab?.CubeGrids != null && prefab.CubeGrids.Length != 0)
+                if (
+                    string.IsNullOrEmpty(name)
+                    && prefab?.CubeGrids != null
+                    && prefab.CubeGrids.Length != 0
+                )
                     name = prefab.CubeGrids[0].DisplayName;
                 return new Listing
                 {
@@ -110,5 +118,6 @@ internal sealed class Listing
             Key = "Gas/" + id.SubtypeName,
         };
 
-    private static string FirstIcon(string[] icons) => icons != null && icons.Length != 0 ? icons[0] : null;
+    private static string FirstIcon(string[] icons) =>
+        icons != null && icons.Length != 0 ? icons[0] : null;
 }

@@ -16,8 +16,7 @@ public sealed class Entry
     public int Step => Unit == null ? LotRow.Lot : 1;
 
     /// <summary>Units of the item the Store has or wants.</summary>
-    public long Available =>
-        (Unit?.Amount ?? 0) + (long)(LotRow?.Amount ?? 0) * (LotRow?.Lot ?? 0);
+    public long Available => (Unit?.Amount ?? 0) + (long)(LotRow?.Amount ?? 0) * (LotRow?.Lot ?? 0);
 
     /// <summary>
     /// The lines of one side of the Store, in the Store's order. An item with exactly one row of

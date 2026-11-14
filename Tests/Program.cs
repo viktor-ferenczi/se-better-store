@@ -18,15 +18,36 @@ void Check(string name, bool ok, string detail = "")
 }
 
 void Equal<T>(string name, T actual, T expected) =>
-    Check(name, EqualityComparer<T>.Default.Equals(actual, expected), $"{actual} (expected {expected})");
+    Check(
+        name,
+        EqualityComparer<T>.Default.Equals(actual, expected),
+        $"{actual} (expected {expected})"
+    );
 
 Row Offer(string item, int price, int amount, int lot = 1, long id = 0) =>
-    new Row { Id = id, Item = item, Side = Side.Buy, Price = price, Amount = amount, Lot = lot };
+    new Row
+    {
+        Id = id,
+        Item = item,
+        Side = Side.Buy,
+        Price = price,
+        Amount = amount,
+        Lot = lot,
+    };
 
 Row Order(string item, int price, int amount, int lot = 1, long id = 0) =>
-    new Row { Id = id, Item = item, Side = Side.Sell, Price = price, Amount = amount, Lot = lot };
+    new Row
+    {
+        Id = id,
+        Item = item,
+        Side = Side.Sell,
+        Price = price,
+        Amount = amount,
+        Lot = lot,
+    };
 
-string Show(Quote q) => string.Join(" + ", q.Parts.Select(p => $"{p.Count}x{p.Row.Lot}@{p.Row.Price}"));
+string Show(Quote q) =>
+    string.Join(" + ", q.Parts.Select(p => $"{p.Count}x{p.Row.Lot}@{p.Row.Price}"));
 
 string Placed(List<Request> requests) =>
     string.Join(" ", requests.Select(r => $"{r.Slot}:{r.Count}x{r.Row.Lot}"));
@@ -34,9 +55,17 @@ string Placed(List<Request> requests) =>
 // --- prices of Octahedron's Stores (SE-1471) ---
 var stone = new Entry { Unit = Offer("Stone", 1, 50000), LotRow = Offer("Stone", 1020, 50, 1000) };
 var iron = new Entry { Unit = Offer("Iron", 14, 50000), LotRow = Offer("Iron", 14484, 50, 1000) };
-var nickel = new Entry { Unit = Offer("Nickel", 26, 20000), LotRow = Offer("Nickel", 25500, 20, 1000) };
+var nickel = new Entry
+{
+    Unit = Offer("Nickel", 26, 20000),
+    LotRow = Offer("Nickel", 25500, 20, 1000),
+};
 var ice = new Entry { LotRow = Offer("Ice", 10, 50, 1000) };
-var ironSell = new Entry { Unit = Order("Iron", 13, 150000), LotRow = Order("Iron", 13916, 150, 1000) };
+var ironSell = new Entry
+{
+    Unit = Order("Iron", 13, 150000),
+    LotRow = Order("Iron", 13916, 150, 1000),
+};
 var stoneSell = new Entry { LotRow = Order("Stone", 980, 150, 1000) };
 
 // --- Split ---
@@ -70,7 +99,13 @@ Equal("split: nothing", Planner.Split(stone, 0).Parts.Count, 0);
 Equal("split: negative", Planner.Split(stone, -5).Amount, 0L);
 
 // --- Cost with a faction bonus, as the server computes it ---
-var bonus = new Row { Side = Side.Buy, Price = 112, Amount = 100, Bonus = 0.95f };
+var bonus = new Row
+{
+    Side = Side.Buy,
+    Price = 112,
+    Amount = 100,
+    Bonus = 0.95f,
+};
 Equal("cost: offer with a bonus", bonus.Cost(10), (long)(112f * (10 * 0.95f)));
 Equal("cost: shown price with a bonus", bonus.ShownPrice, 106);
 var big = Offer("Big", 2_000_000_000, 5);
@@ -79,7 +114,11 @@ Equal("cost: no overflow without a bonus", big.Cost(5), 10_000_000_000L);
 // --- Place ---
 long left;
 var requests = Planner.Place(Planner.Split(nickel, 2500), new long[] { 1200, 5000 }, out left);
-Equal("place: a lot goes whole into one inventory", Placed(requests), "0:1x1000 1:1x1000 0:200x1 1:300x1");
+Equal(
+    "place: a lot goes whole into one inventory",
+    Placed(requests),
+    "0:1x1000 1:1x1000 0:200x1 1:300x1"
+);
 Equal("place: all placed", left, 0L);
 
 requests = Planner.Place(Planner.Split(ice, 3000), new long[] { 900, 900, 2100 }, out left);
@@ -95,15 +134,29 @@ Equal("place: no inventory", left, 700L);
 // --- Max ---
 Equal("max: the room limits", Planner.Max(stone, new long[] { 1200, 300 }, long.MaxValue), 1500L);
 Equal("max: the money limits", Planner.Max(iron, new long[] { 1_000_000 }, 1400), 100L);
-Equal("max: the stock limits", Planner.Max(stone, new long[] { 10_000_000 }, long.MaxValue), 100000L);
-Equal("max: lots only, whole lots that fit", Planner.Max(ice, new long[] { 2500, 1999 }, long.MaxValue), 3000L);
+Equal(
+    "max: the stock limits",
+    Planner.Max(stone, new long[] { 10_000_000 }, long.MaxValue),
+    100000L
+);
+Equal(
+    "max: lots only, whole lots that fit",
+    Planner.Max(ice, new long[] { 2500, 1999 }, long.MaxValue),
+    3000L
+);
 Equal("max: lots only, the money limits", Planner.Max(ice, new long[] { 100000 }, 25), 2000L);
 Equal("max: selling what is held", Planner.Max(ironSell, new long[] { 2500, 40 }, 0), 2540L);
 Equal("max: selling to lots only", Planner.Max(stoneSell, new long[] { 2500, 1700 }, 0), 3000L);
 Equal("max: nothing held", Planner.Max(ironSell, new long[] { 0, 0 }, 0), 0L);
 Equal("max: no money", Planner.Max(iron, new long[] { 1000 }, 0), 0L);
-Check("possible: the max is", Planner.Possible(ice, 3000, new long[] { 2500, 1999 }, long.MaxValue));
-Check("possible: more than the max is not", !Planner.Possible(ice, 4000, new long[] { 2500, 1999 }, long.MaxValue));
+Check(
+    "possible: the max is",
+    Planner.Possible(ice, 3000, new long[] { 2500, 1999 }, long.MaxValue)
+);
+Check(
+    "possible: more than the max is not",
+    !Planner.Possible(ice, 4000, new long[] { 2500, 1999 }, long.MaxValue)
+);
 
 // --- Entry.Build ---
 var rows = new List<Row>
@@ -118,9 +171,15 @@ var rows = new List<Row>
 };
 var entries = Entry.Build(rows, Side.Buy, merge: true);
 Equal("build: merged lines", entries.Count, 4);
-Check("build: stone is one line of two rows", entries[0].Unit?.Id == 1 && entries[0].LotRow?.Id == 2);
+Check(
+    "build: stone is one line of two rows",
+    entries[0].Unit?.Id == 1 && entries[0].LotRow?.Id == 2
+);
 Check("build: ice is a line of lots", entries[1].Unit == null && entries[1].Step == 1000);
-Check("build: two offers of an item at different prices stay apart", entries[2].Unit.Id == 5 && entries[3].Unit.Id == 6);
+Check(
+    "build: two offers of an item at different prices stay apart",
+    entries[2].Unit.Id == 5 && entries[3].Unit.Id == 6
+);
 Equal("build: separate lines", Entry.Build(rows, Side.Buy, merge: false).Count, 5);
 Equal("build: the other side", Entry.Build(rows, Side.Sell, merge: true).Count, 1);
 Equal("build: available", entries[0].Available, 100000L);
@@ -135,13 +194,23 @@ Equal("guess: the lone order priced like the lot is one", rows[2].Lot, 1000);
 Equal("guess: lots only can't be guessed", rows[3].Lot, 1);
 Equal("guess: two offers 3 % apart are no lots", rows[5].Lot, 1);
 
-var ironRows = new List<Row> { Offer("Iron", 14, 1), Offer("Iron", 14484, 1), Order("Iron", 13, 1), Order("Iron", 13916, 1) };
+var ironRows = new List<Row>
+{
+    Offer("Iron", 14, 1),
+    Offer("Iron", 14484, 1),
+    Order("Iron", 13, 1),
+    Order("Iron", 13916, 1),
+};
 Lots.Guess(ironRows);
 Equal("guess: both sides of iron", string.Join(",", ironRows.Select(r => r.Lot)), "1,1000,1,1000");
 
 var far = new List<Row> { Offer("X", 10, 1), Offer("X", 200, 1), Order("X", 100000, 1) };
 Lots.Guess(far);
-Equal("guess: prices far from 1,000 times apart", string.Join(",", far.Select(r => r.Lot)), "1,1,1");
+Equal(
+    "guess: prices far from 1,000 times apart",
+    string.Join(",", far.Select(r => r.Lot)),
+    "1,1,1"
+);
 
 Lots.Apply(rows, new Dictionary<long, int> { [4] = 1000, [2] = 1000 });
 Equal("apply: the server's lots", string.Join(",", rows.Select(r => r.Lot)), "1,1000,1,1000,1,1,1");
