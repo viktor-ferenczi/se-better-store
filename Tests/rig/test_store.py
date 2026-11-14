@@ -176,6 +176,12 @@ def ships() -> list:
     return control("BetterStoreShip")["items"]
 
 
+def rect(name: str) -> tuple[float, float, float, float]:
+    """Left, top, width and height of a control, in the game's screen units"""
+    line = next(l for l in rig.probe(f"control {name}") if l.startswith("RECT "))
+    return tuple(float(v) for v in line.split(" ")[1:])
+
+
 def close_store() -> None:
     api.key("Escape")
     wait(lambda: screen_index() is None, "the screen to close")
@@ -548,6 +554,27 @@ def check_sell() -> None:
 def check_amounts() -> None:
     prepare()
     open_store()
+    select("Iron Ingot")
+    less, box, more = (rect(f"BetterStore{n}") for n in ("Less", "Amount", "More"))
+    # A text box draws its frame from its top, a button 0.002 above its own
+    check(
+        "6. Amount box is level with - and +",
+        abs(box[1] - (less[1] - 0.002)) < 0.0005 and abs(more[1] - less[1]) < 0.0005,
+        f"- {less[1]}, box {box[1]}, + {more[1]}",
+    )
+    check(
+        "6. Unit and + follow the amount box",
+        0.01 < more[0] - (box[0] + box[2]) < 0.05,
+        f"box ends at {box[0] + box[2]:.4f}, + at {more[0]:.4f}",
+    )
+    wide = box[2]
+    select("Motor")
+    narrow = rect("BetterStoreAmount")[2]
+    check(
+        "6. Amount box is only as wide as the item's largest amount",
+        narrow < wide < 0.12,
+        f"Iron Ingot {wide}, Motor {narrow}",
+    )
     select("Iron Ingot")
     equal(
         "6. Presets for kg",

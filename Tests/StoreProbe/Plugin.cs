@@ -271,6 +271,12 @@ public class Plugin : IPlugin
                 output.Add(
                     $"CONTROL {control.GetType().Name} enabled={control.Enabled} visible={control.Visible}"
                 );
+                var corner = control.GetPositionAbsoluteTopLeft();
+                output.Add(
+                    FormattableString.Invariant(
+                        $"RECT {corner.X:F4} {corner.Y:F4} {control.Size.X:F4} {control.Size.Y:F4}"
+                    )
+                );
                 if (control is MyGuiControlCombobox combo)
                     for (int i = 0; i < combo.GetItemsCount(); i++)
                         output.Add("ITEM " + combo.GetItemByIndex(i).Value);

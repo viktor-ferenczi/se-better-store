@@ -69,6 +69,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
     private MyGuiControlLabel infoLabel;
     private MyGuiControlTextbox amountBox;
     private MyGuiControlLabel unitLabel;
+    private MyGuiControlButton moreButton;
     private readonly MyGuiControlButton[] presetButtons = new MyGuiControlButton[Presets];
     private readonly long[] presetAmounts = new long[Presets];
     private readonly MyGuiControlLabel[] priceNames = new MyGuiControlLabel[PriceLines];
@@ -277,11 +278,15 @@ internal sealed class StoreScreen : MyGuiScreenBase
         itemLabel = Label(PanelLeft, -0.225f, "", White, scale: 1f);
         infoLabel = Label(PanelLeft, -0.193f, "", Dim);
         Button(PanelLeft, -0.148f, 0.035f, "-", () => SetAmount(StepDown()), "BetterStoreLess");
-        amountBox = new MyGuiControlTextbox(new Vector2(PanelLeft + 0.04f, -0.148f), maxLength: 16)
+        // A text box draws its frame from its top at the height of its texture, as high as a
+        // button, whatever its own height is. A button draws its frame a little above its own.
+        amountBox = new MyGuiControlTextbox(
+            new Vector2(PanelLeft + 0.04f, -0.148f - 0.02f - 0.002f),
+            maxLength: 16
+        )
         {
             Name = "BetterStoreAmount",
-            OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER,
-            Size = new Vector2(0.25f, 0.04f),
+            OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
         };
         // The panel follows the amount as it is typed; the box shows it formatted once it loses focus
         amountBox.TextChanged += box =>
@@ -291,7 +296,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         };
         Controls.Add(amountBox);
         unitLabel = Label(PanelLeft + 0.295f, -0.148f, "", Dim);
-        Button(
+        moreButton = Button(
             Right - 0.035f,
             -0.148f,
             0.035f,
@@ -299,6 +304,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             () => SetAmount(amount + Step(amount)),
             "BetterStoreMore"
         );
+        FitAmountBox("0");
 
         float presetWidth = (Right - PanelLeft - 0.004f * (Presets - 1)) / Presets;
         for (int i = 0; i < Presets; i++)
@@ -454,6 +460,29 @@ internal sealed class StoreScreen : MyGuiScreenBase
         };
         Controls.Add(button);
         return button;
+    }
+
+    /// <summary>
+    /// Makes the amount box as wide as the largest amount and one more digit, and moves the unit
+    /// and the + button next to it.
+    /// </summary>
+    private void FitAmountBox(string largest)
+    {
+        const float gap = 0.008f;
+        float text = MyGuiManager
+            .MeasureString(
+                amountBox.TextFont,
+                new StringBuilder(largest + "0"),
+                amountBox.TextScaleWithLanguage
+            )
+            .X;
+        amountBox.Size = new Vector2(
+            text + 2f * MyGuiConstants.TEXTBOX_TEXT_OFFSET.X,
+            amountBox.Size.Y
+        );
+        unitLabel.PositionX = amountBox.PositionX + amountBox.Size.X + gap;
+        float unit = unitLabel.GetTextSize().X;
+        moreButton.PositionX = unitLabel.PositionX + (unit > 0f ? unit + gap : 0f);
     }
 
     // --- state ---
@@ -752,6 +781,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         if (!amountBox.HasFocus)
             ShowAmount(Amounts.Number(amount / scale));
         unitLabel.Text = scale > 1 ? "lots" : Amounts.Name(listing.Unit);
+        FitAmountBox(Amounts.Number(Math.Max(max, amount) / scale));
 
         FillPresets(listing, scale, buying);
 
@@ -856,6 +886,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         unitLabel.Text = "";
         if (!amountBox.HasFocus)
             ShowAmount("");
+        FitAmountBox("0");
         slotsTitle.Text = "";
         foreach (var label in priceNames.Concat(priceValues).Concat(slotNames).Concat(slotValues))
             label.Text = "";
