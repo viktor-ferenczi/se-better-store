@@ -46,6 +46,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
     private readonly StoreModel model;
 
     private Side side = Side.Buy;
+    private bool defaultSort = true;
     private int shipIndex;
     private List<Entry> entries = new List<Entry>();
     private Entry selected;
@@ -156,7 +157,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         );
 
         // Top row: the ship, its cargo and hydrogen, the balance
-        Label(Left, -0.352f, "Your ship", Dim);
+        Label(Left, -0.352f, "Your ship or character", Dim);
         shipBox = new MyGuiControlCombobox(
             new Vector2(Left, -0.318f),
             new Vector2(0.3f, 0.04f),
@@ -245,7 +246,18 @@ internal sealed class StoreScreen : MyGuiScreenBase
             table.SetHeaderColumnMargin(column, new Thickness(-CellMargin / 2, 0f, CellMargin, 0f));
             table.SetColumnComparison(
                 column,
-                (a, b) => ((double)a.UserData).CompareTo((double)b.UserData)
+                (a, b) =>
+                {
+                    int order = ((double)a.UserData).CompareTo((double)b.UserData);
+                    // Equal amounts go by name, A to Z when the larger amounts come first
+                    return order != 0
+                        ? order
+                        : string.Compare(
+                            b.Row.GetCell(1).Text.ToString(),
+                            a.Row.GetCell(1).Text.ToString(),
+                            StringComparison.CurrentCultureIgnoreCase
+                        );
+                }
             );
         }
         table.SetColumnComparison(
@@ -498,6 +510,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
         if (side == newSide)
             return;
         side = newSide;
+        defaultSort = true;
         selected = null;
         amount = 0;
         Rebuild();
@@ -579,7 +592,19 @@ internal sealed class StoreScreen : MyGuiScreenBase
             );
             table.Add(row);
         }
-        table.Sort(switchSort: false);
+        if (defaultSort)
+        {
+            // Buy: by name. Sell: what the player has the most of first. The table only toggles a
+            // column: sorting by another one first leaves this one unsorted, then its first sort
+            // is ascending and its second descending.
+            table.SortByColumn(buying ? 2 : 1);
+            table.SortByColumn(buying ? 1 : 4);
+            if (!buying)
+                table.SortByColumn(4);
+            defaultSort = false;
+        }
+        else
+            table.Sort(switchSort: false);
         int index = selected == null ? -1 : table.FindIndex(r => r.UserData == selected);
         table.SelectedRowIndex = index < 0 ? (int?)null : index;
         filling = false;

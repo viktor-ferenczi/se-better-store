@@ -39,8 +39,10 @@ action on an item is in the panel on the right.
 
 ### Top row
 
-- **Your ship**: a combo box of the docked grids that the Store may trade with, one entry per
-  grid, and "Character" for the suit. The first ship is selected when the screen opens.
+- **Your ship or character**: a combo box of the ships to trade with, and "Character" for the
+  suit, which is always listed. A ship is listed only while it is docked to the Store's grid at a
+  connector with trading on, and only with the blocks the player has access to: their own, their
+  faction's, or shared with all. The first ship is selected when the screen opens.
 - **Cargo** and **Hydrogen**: progress bars over all inventories, or all hydrogen tanks, of the
   selected ship, with the volume as text. While an amount is entered, a second bar shows how
   much the trade would add.
@@ -48,7 +50,9 @@ action on an item is in the panel on the right.
 
 ### Buy and Sell tabs
 
-One table per tab, 15 rows before it scrolls. Click a column header to sort.
+One table per tab, 15 rows before it scrolls. The Buy tab opens sorted by item name. The Sell tab
+opens with the items the player has the most of first, and by name among equals. Click a column
+header to sort by it.
 
 | Buy | Sell |
 |---|---|

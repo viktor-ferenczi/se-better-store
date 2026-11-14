@@ -9,6 +9,7 @@ using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Blocks;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Entities.Character.Components;
+using Sandbox.Game.Entities.Cube;
 using Sandbox.Game.GameSystems.BankingAndCurrency;
 using Sandbox.Game.World;
 using VRage;
@@ -103,6 +104,8 @@ internal sealed class StoreModel
     {
         LotInfo.Listen();
         LotInfo.Changed += OnLots;
+        // The character is there to trade with before, and without, the server's answer
+        OnInventories(new List<long>());
         Store.CreateGetConnectedGridInventoriesRequest(OnInventories);
         Refresh();
     }
@@ -195,9 +198,14 @@ internal sealed class StoreModel
         if (closed)
             return;
         Ships.Clear();
+        // The server lists the blocks of docked grids the player has access to. Both are checked
+        // here again, so the list never shows a ship the player can't trade with.
+        var docked = Docked();
         var blocks = entityIds
-            .Select(id => MyEntities.TryGetEntityById(id, out MyCubeBlock block) ? block : null)
-            .Where(block => block != null);
+            .Select(id => MyEntities.TryGetEntityById(id, out MyTerminalBlock block) ? block : null)
+            .Where(block =>
+                block != null && block.HasLocalPlayerAccess() && docked.Contains(block.CubeGrid)
+            );
         // A ship is all the grids mechanically joined to the docked one
         foreach (
             var group in blocks.GroupBy(b =>
@@ -230,6 +238,23 @@ internal sealed class StoreModel
             Ships.Add(suit);
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>The grids docked to the Store's grid at a connector with trading on.</summary>
+    private HashSet<MyCubeGrid> Docked()
+    {
+        var grids = new HashSet<MyCubeGrid>();
+        foreach (var connector in Store.CubeGrid.GetFatBlocks<MyShipConnector>())
+        {
+            if (!connector.Connected || !connector.TradingEnabled.Value || connector.Other == null)
+                continue;
+            var ship = connector.Other.CubeGrid;
+            grids.Add(ship);
+            var group = MyCubeGridGroups.Static.Mechanical.GetGroupNodes(ship);
+            if (group != null)
+                grids.UnionWith(group);
+        }
+        return grids;
     }
 
     // --- inventories ---

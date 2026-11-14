@@ -172,6 +172,10 @@ def open_store(key: bool = False) -> None:
     wait(lambda: len(table()) > 0, "the Store's rows")
 
 
+def ships() -> list:
+    return control("BetterStoreShip")["items"]
+
+
 def close_store() -> None:
     api.key("Escape")
     wait(lambda: screen_index() is None, "the screen to close")
@@ -272,9 +276,10 @@ def check_lists() -> None:
     rig.probe("fill Cargo_A Ingot/Iron 40000")
     rig.probe("fill Cargo_B Ingot/Iron 30000")
     open_store()
+    wait(lambda: len(ships()) == 2, "the docked ship in the list")
     equal(
         "2. Ship combo lists the docked ship and Character",
-        control("BetterStoreShip")["items"],
+        ships(),
         ["BS Ship", "Character"],
     )
     equal(
@@ -283,11 +288,6 @@ def check_lists() -> None:
         False,
     )
     rows = {r[1]: r for r in table()}
-    equal(
-        "2. Buy tab lists the offers",
-        names(),
-        ["Stone", "Iron Ingot", "Platinum Ingot", "Steel Plate", "Motor", "Hydrogen"],
-    )
     equal(
         "2. Stone (merged) Price / In stock",
         rows["Stone"][2:4],
@@ -307,6 +307,11 @@ def check_lists() -> None:
         ["40 /m³", "5,000 m³", "1,000 m³"],
     )
     equal("2. Platinum Fits is limited by money", rows["Platinum Ingot"][4], "33.333 t")
+    equal(
+        "2. Buy tab lists the offers, sorted by name",
+        names(),
+        ["Hydrogen", "Iron Ingot", "Motor", "Platinum Ingot", "Steel Plate", "Stone"],
+    )
     api.control_click(name="BetterStoreTable", header=2, screen=screen_index())
     equal(
         "2. A click on Price sorts by it",
@@ -323,9 +328,9 @@ def check_lists() -> None:
     side("Sell")
     rows = {r[1]: r for r in table()}
     equal(
-        "2. Sell tab lists the orders, no gas",
+        "2. Sell tab: no gas, the most held first, then by name",
         names(),
-        ["Iron Ingot", "Nickel Ingot", "Steel Plate", "Gold Ingot"],
+        ["Iron Ingot", "Gold Ingot", "Nickel Ingot", "Steel Plate"],
     )
     equal(
         "2. Sell tab headers",
@@ -381,6 +386,33 @@ def check_character() -> None:
         "Bought 3 pcs of Motor for 585 SC.",
     )
     close_store()
+
+
+def check_ship_access() -> None:
+    """Only a docked ship the player has access to is listed; the character always is"""
+
+    def listed(label: str, expected: list) -> None:
+        open_store()
+        if len(expected) > 1:
+            wait(lambda: len(ships()) == len(expected), "the ship in the list")
+        else:
+            time.sleep(1.0)  # the server's answer, which must not add the ship
+        equal(label, ships(), expected)
+        close_store()
+
+    def docked() -> None:
+        check("2. The ship is docked", "connected=True" in rig.probe("ship")[0])
+
+    prepare()
+    rig.probe("shipowner npc")
+    docked()
+    listed("2. A docked ship of another faction is not listed", ["Character"])
+    rig.probe("shipowner me")
+    docked()
+    rig.probe("trading off")
+    listed("2. A ship at a connector with trading off is not listed", ["Character"])
+    rig.probe("trading on")
+    listed("2. The player's docked ship is listed again", ["BS Ship", "Character"])
 
 
 def check_buy_two_containers() -> None:
@@ -759,7 +791,7 @@ def main() -> int:
     try:
         setup_store()
         tests = (
-            check_open, check_lists, check_character, check_buy_two_containers, check_buy_max, check_sell,
+            check_open, check_lists, check_character, check_ship_access, check_buy_two_containers, check_buy_max, check_sell,
             check_amounts, check_gas, check_lots, check_refused, check_close,
             # Last: after the server's message the plugin stops guessing lots for the session
             check_server_lots, screenshots,
