@@ -80,7 +80,8 @@ Double-click on a row trades the amount in the box, as the vanilla screen does.
 For the selected row:
 
 - The item, how much of it is on the ship, and how much fits or can be sold.
-- The amount: a text box with **−** and **+** next to it. The buttons step by the leading digit
+- The amount: **−**, a text box, the unit and **+** in a row. The box is as wide as the largest
+  amount of the item and one more digit. The buttons step by the leading digit
   of the amount: 100 kg steps below a tonne, 1 t steps up to 10 t, and so on. Typing takes plain
   numbers, thousands separators, and a `t` or `k` suffix for thousands: `2.5t` is 2,500 kg.
 - Six preset buttons. For items by weight: 100 kg, 1 t, 10 t, 100 t, Half, and Fits (Buy) or
