@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<PluginData
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:type="GitHubPlugin"
+>
+  <Id>better-store-probe</Id>
+  <GroupId>better-store-probe</GroupId>
+  <RepoId>local/better-store-probe</RepoId>
+
+  <FriendlyName>Better Store Probe</FriendlyName>
+  <Author>Viktor</Author>
+
+  <Tooltip>Test only: sets up the Better Store test world, see Tests/rig</Tooltip>
+  <Description>Test only. Runs the commands of the Better Store rig (Tests/rig) in an offline world.</Description>
+
+  <Runtimes>CoreCLR</Runtimes>
+
+  <Hidden>true</Hidden>
+
+  <Commit>TODO</Commit>
+</PluginData>
