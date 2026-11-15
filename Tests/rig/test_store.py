@@ -798,25 +798,44 @@ def check_stand_ins() -> None:
     print(f"Screenshot: {shot}", flush=True)
 
 
-def check_network_answers() -> None:
+def network_trade(button: str = "BetterStoreTrade") -> tuple[str, int | None]:
+    """With "network on": the status line, and the error box if one came; it is closed"""
+    status = trade(button)
+    box = screen_index("MyGuiScreenMessageBox")
+    if box is not None:
+        api.control_click(text="OK", screen=box)
+        wait(lambda: screen_index("MyGuiScreenMessageBox") is None, "the box to close")
+    return status, box
+
+
+def check_network_buy() -> None:
     """A server's answers come a frame after the request, unlike offline. A trade of more than one
-    request lost the second answer: Sell all of Ice in 1 t lots from two containers ended with
-    "The server did not answer" (SE-1580)"""
+    request lost the second answer and ended with "The server did not answer" (SE-1580)
+    """
     rig.probe("network on")
-    ice = int(rig.probe("order Ore/Ice 100 39 1000")[0].split(" ")[1])
-    rig.probe(f"standin {ice}")
     try:
         prepare()
+        rig.probe(f"stock {row_ids[('offer', 'Ingot/Iron', 14)]} 300000")
         open_store()
         select("Iron Ingot")
         set_amount("200t")
         equal(
             "12. Network: buy into two containers",
-            trade(),
-            "Bought 200 t of Iron Ingot for 2,800,000 SC.",
+            network_trade(),
+            ("Bought 200 t of Iron Ingot for 2,800,000 SC.", None),
         )
         close_store()
+    finally:
+        rig.probe("network off")
 
+
+def check_network_sell_all() -> None:
+    """Sell all of Ice in 1 t lots, 3 lots from one container and 8 from another, as at Delta
+    Station (SE-1580)"""
+    rig.probe("network on")
+    ice = int(rig.probe("order Ore/Ice 100 39 1000")[0].split(" ")[1])
+    rig.probe(f"standin {ice}")
+    try:
         prepare()
         rig.probe("fill Cargo_A Ore/Ice 3400")
         rig.probe("fill Cargo_B Ore/Ice 8200")
@@ -824,23 +843,18 @@ def check_network_answers() -> None:
         side("Sell")
         select("Ice")
         equal(
-            "12. Network: Sell all of Ice",
+            "13. Network: Sell all of Ice",
             text("BetterStoreTradeMax"),
             "Sell all: 11 t",
         )
         before = balance()
-        status = trade("BetterStoreTradeMax")
-        box = screen_index("MyGuiScreenMessageBox")
-        if box is not None:
-            api.control_click(text="OK", screen=box)
-            wait(
-                lambda: screen_index("MyGuiScreenMessageBox") is None,
-                "the box to close",
-            )
-        equal("12. Network: no error box", box, None)
-        equal("12. Network: Sell all status", status, "Sold 11 t of Ice for 429 SC.")
         equal(
-            "12. Network: 3 + 8 lots sold, what is less than a lot left",
+            "13. Network: Sell all status, no error box",
+            network_trade("BetterStoreTradeMax"),
+            ("Sold 11 t of Ice for 429 SC.", None),
+        )
+        equal(
+            "13. Network: 3 + 8 lots sold, what is less than a lot left",
             (held("Ore/Ice"), balance() - before),
             (600.0, 429),
         )
@@ -975,7 +989,7 @@ def main() -> int:
         setup_store()
         tests = (
             check_open, check_lists, check_character, check_ship_access, check_buy_two_containers, check_buy_max, check_sell,
-            check_amounts, check_gas, check_lots, check_refused, check_close, check_stand_ins, check_network_answers,
+            check_amounts, check_gas, check_lots, check_refused, check_close, check_stand_ins, check_network_buy, check_network_sell_all,
             # Last: after the server's message the plugin stops guessing lots for the session
             check_server_lots, screenshots,
         )  # fmt: skip

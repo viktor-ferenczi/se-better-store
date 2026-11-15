@@ -79,7 +79,9 @@ public class Plugin : IPlugin
     // The Store's buy and sell answers held back for a frame by "network on"
     internal static bool Network;
     internal static readonly List<Action> Answers = new List<Action>();
-    internal static bool Delivering;
+
+    // Lets the held answer itself through, but not one that comes inside it
+    internal static int Delivering;
 
     public void Init(object gameInstance)
     {
@@ -92,15 +94,11 @@ public class Plugin : IPlugin
     {
         var answers = Answers.ToList();
         Answers.Clear();
-        Delivering = true;
-        try
+        foreach (var answer in answers)
         {
-            foreach (var answer in answers)
-                answer();
-        }
-        finally
-        {
-            Delivering = false;
+            Delivering = 1;
+            answer();
+            Delivering = 0;
         }
         if (++frame % 10 != 0 || MySession.Static is not { Ready: true })
             return;
@@ -640,8 +638,13 @@ internal static class SellAnswerPatch
 
     private static bool Prefix(MyStoreBlock __instance, MyStoreSellItemResult result)
     {
-        if (!Plugin.Network || Plugin.Delivering)
+        if (!Plugin.Network)
             return true;
+        if (Plugin.Delivering > 0)
+        {
+            Plugin.Delivering--;
+            return true;
+        }
         Plugin.Answers.Add(() => Original.Invoke(__instance, new object[] { result }));
         return false;
     }
@@ -658,8 +661,13 @@ internal static class BuyAnswerPatch
 
     private static bool Prefix(MyStoreBlock __instance, MyStoreBuyItemResult result)
     {
-        if (!Plugin.Network || Plugin.Delivering)
+        if (!Plugin.Network)
             return true;
+        if (Plugin.Delivering > 0)
+        {
+            Plugin.Delivering--;
+            return true;
+        }
         Plugin.Answers.Add(() => Original.Invoke(__instance, new object[] { result }));
         return false;
     }
