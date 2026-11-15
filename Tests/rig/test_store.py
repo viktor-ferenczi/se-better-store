@@ -824,14 +824,19 @@ def check_network_answers() -> None:
         side("Sell")
         select("Ice")
         equal(
-            "12. Network: Sell all of Ice", text("BetterStoreTradeMax"), "Sell all: 11 t"
+            "12. Network: Sell all of Ice",
+            text("BetterStoreTradeMax"),
+            "Sell all: 11 t",
         )
         before = balance()
         status = trade("BetterStoreTradeMax")
         box = screen_index("MyGuiScreenMessageBox")
         if box is not None:
             api.control_click(text="OK", screen=box)
-            wait(lambda: screen_index("MyGuiScreenMessageBox") is None, "the box to close")
+            wait(
+                lambda: screen_index("MyGuiScreenMessageBox") is None,
+                "the box to close",
+            )
         equal("12. Network: no error box", box, None)
         equal("12. Network: Sell all status", status, "Sold 11 t of Ice for 429 SC.")
         equal(
