@@ -798,6 +798,53 @@ def check_stand_ins() -> None:
     print(f"Screenshot: {shot}", flush=True)
 
 
+def check_network_answers() -> None:
+    """A server's answers come a frame after the request, unlike offline. A trade of more than one
+    request lost the second answer: Sell all of Ice in 1 t lots from two containers ended with
+    "The server did not answer" (SE-1580)"""
+    rig.probe("network on")
+    ice = int(rig.probe("order Ore/Ice 100 39 1000")[0].split(" ")[1])
+    rig.probe(f"standin {ice}")
+    try:
+        prepare()
+        open_store()
+        select("Iron Ingot")
+        set_amount("200t")
+        equal(
+            "12. Network: buy into two containers",
+            trade(),
+            "Bought 200 t of Iron Ingot for 2,800,000 SC.",
+        )
+        close_store()
+
+        prepare()
+        rig.probe("fill Cargo_A Ore/Ice 3400")
+        rig.probe("fill Cargo_B Ore/Ice 8200")
+        open_store()
+        side("Sell")
+        select("Ice")
+        equal(
+            "12. Network: Sell all of Ice", text("BetterStoreTradeMax"), "Sell all: 11 t"
+        )
+        before = balance()
+        status = trade("BetterStoreTradeMax")
+        box = screen_index("MyGuiScreenMessageBox")
+        if box is not None:
+            api.control_click(text="OK", screen=box)
+            wait(lambda: screen_index("MyGuiScreenMessageBox") is None, "the box to close")
+        equal("12. Network: no error box", box, None)
+        equal("12. Network: Sell all status", status, "Sold 11 t of Ice for 429 SC.")
+        equal(
+            "12. Network: 3 + 8 lots sold, what is less than a lot left",
+            (held("Ore/Ice"), balance() - before),
+            (600.0, 429),
+        )
+        close_store()
+    finally:
+        rig.probe("network off")
+        rig.probe(f"stock {ice} 0")
+
+
 def check_server_lots() -> None:
     """The server names the rows of lots (channel 14860): then an item sold in lots only shows in
     tonnes, which no guess can tell"""
@@ -923,7 +970,7 @@ def main() -> int:
         setup_store()
         tests = (
             check_open, check_lists, check_character, check_ship_access, check_buy_two_containers, check_buy_max, check_sell,
-            check_amounts, check_gas, check_lots, check_refused, check_close, check_stand_ins,
+            check_amounts, check_gas, check_lots, check_refused, check_close, check_stand_ins, check_network_answers,
             # Last: after the server's message the plugin stops guessing lots for the session
             check_server_lots, screenshots,
         )  # fmt: skip
