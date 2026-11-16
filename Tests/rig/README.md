@@ -14,7 +14,8 @@ BS_SLOT=21 uv run -q --no-project --with httpx python3 test_store.py
 `test_store.py` starts a fresh client, runs the checks, prints a PASS or FAIL line for each and
 a summary, stops the client and exits with the number of failures. A run takes about 75 s,
 20 s of it for the client and the world. `--keep` leaves the client running afterwards.
-`rig.py start` and `rig.py stop` start and stop the client by hand, and `rig.py probe <command>`
+On a host whose Steam has no `steamapps/libraryfolders.vdf`, set `BS_BIN64` to the game's
+`Bin64` folder. `rig.py start` and `rig.py stop` start and stop the client by hand, and `rig.py probe <command>`
 sends the probe a command.
 
 ## What it sets up

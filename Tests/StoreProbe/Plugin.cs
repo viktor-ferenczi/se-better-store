@@ -58,6 +58,9 @@ namespace BetterStoreProbe;
 //   control <name>              CONTROL <type> enabled=<bool> visible=<bool>, then ITEM <text>
 //                               for each item of a combo box, on the Better Store screen
 //   closex                      clicks the X of the Better Store screen
+//   network <on|off>            delivers the Store's buy and sell answers one frame later, as
+//                               they come from a server over the network, instead of inside the
+//                               request
 // ReSharper disable once UnusedType.Global
 public class Plugin : IPlugin
 {
@@ -73,6 +76,13 @@ public class Plugin : IPlugin
 
     private int frame;
 
+    // The Store's buy and sell answers held back for a frame by "network on"
+    internal static bool Network;
+    internal static readonly List<Action> Answers = new List<Action>();
+
+    // Lets the held answer itself through, but not one that comes inside it
+    internal static int Delivering;
+
     public void Init(object gameInstance)
     {
         new Harmony("BetterStoreProbe").PatchAll(Assembly.GetExecutingAssembly());
@@ -82,6 +92,14 @@ public class Plugin : IPlugin
 
     public void Update()
     {
+        var answers = Answers.ToList();
+        Answers.Clear();
+        foreach (var answer in answers)
+        {
+            Delivering = 1;
+            answer();
+            Delivering = 0;
+        }
         if (++frame % 10 != 0 || MySession.Static is not { Ready: true })
             return;
         string folder = Path.Combine(MyFileSystem.UserDataPath, "BetterStoreProbe");
@@ -399,6 +417,12 @@ public class Plugin : IPlugin
                 output.Add("OK");
                 break;
             }
+            case "network":
+            {
+                Network = args[1] == "on";
+                output.Add("OK");
+                break;
+            }
             case "faction":
             {
                 var faction = MySession.Static.Factions.TryGetFactionByTag(FactionTag);
@@ -598,5 +622,53 @@ internal static class StandInPatch
                     : row
             )
             .ToList();
+    }
+}
+
+// "network on": the Store's answer reaches the client a frame after the request, as from a
+// server, not inside it as offline. The game clears the request's callback after calling it.
+[HarmonyPatch(typeof(MyStoreBlock), "OnSellItemResult")]
+// ReSharper disable once UnusedType.Global
+internal static class SellAnswerPatch
+{
+    private static readonly MethodInfo Original = AccessTools.Method(
+        typeof(MyStoreBlock),
+        "OnSellItemResult"
+    );
+
+    private static bool Prefix(MyStoreBlock __instance, MyStoreSellItemResult result)
+    {
+        if (!Plugin.Network)
+            return true;
+        if (Plugin.Delivering > 0)
+        {
+            Plugin.Delivering--;
+            return true;
+        }
+        Plugin.Answers.Add(() => Original.Invoke(__instance, new object[] { result }));
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(MyStoreBlock), "OnBuyItemResult")]
+// ReSharper disable once UnusedType.Global
+internal static class BuyAnswerPatch
+{
+    private static readonly MethodInfo Original = AccessTools.Method(
+        typeof(MyStoreBlock),
+        "OnBuyItemResult"
+    );
+
+    private static bool Prefix(MyStoreBlock __instance, MyStoreBuyItemResult result)
+    {
+        if (!Plugin.Network)
+            return true;
+        if (Plugin.Delivering > 0)
+        {
+            Plugin.Delivering--;
+            return true;
+        }
+        Plugin.Answers.Add(() => Original.Invoke(__instance, new object[] { result }));
+        return false;
     }
 }

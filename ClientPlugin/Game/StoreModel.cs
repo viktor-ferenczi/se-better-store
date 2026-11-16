@@ -78,6 +78,7 @@ internal sealed class StoreModel
     private Side tradedSide;
     private double economyTick;
     private bool closed;
+    private bool answered;
 
     /// <summary>True while the Store's items are being loaded.</summary>
     public bool Loading { get; private set; }
@@ -117,6 +118,7 @@ internal sealed class StoreModel
         LotInfo.Changed -= OnLots;
         steps.Clear();
         waiting.Reset();
+        answered = false;
     }
 
     public void Refresh()
@@ -515,12 +517,20 @@ internal sealed class StoreModel
         if (tradedListing != step.Listing)
             tradedItems++;
         tradedListing = step.Listing;
-        SendNext();
+        // The game clears the request's callback after it returns, so a request sent from here
+        // would lose its answer. The next one goes out on the next frame.
+        answered = true;
     }
 
-    /// <summary>The server drops some bad requests without an answer. Call this every frame.</summary>
+    /// <summary>Sends the next request of a trade; the server drops some bad requests without an answer. Call this every frame.</summary>
     public void Update()
     {
+        if (answered)
+        {
+            answered = false;
+            SendNext();
+            return;
+        }
         if (waiting.IsRunning && waiting.Elapsed.TotalSeconds > AnswerTimeoutSeconds)
             Fail(
                 "The server did not answer. It may not allow you to trade with "
@@ -533,6 +543,7 @@ internal sealed class StoreModel
     {
         steps.Clear();
         waiting.Reset();
+        answered = false;
         requestNumber++;
         SetStatus(tradedUnits == 0 ? "Nothing was traded." : "Stopped. " + Summary(), true);
         Refused?.Invoke(reason);

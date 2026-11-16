@@ -240,6 +240,9 @@ def launch() -> None:
         "-sources", "--no-steam", "-appdata", str(APPDATA), "--client-id", str(CLIENT_ID),
         "--quality", "minimal", "--resolution", RESOLUTION, "--no-audio", "--headless",
     ]  # fmt: skip
+    # A host whose Steam has no library list, like a test host, names the game folder
+    if os.environ.get("BS_BIN64"):
+        args += ["-bin64", os.environ["BS_BIN64"]]
     process = subprocess.Popen(
         [
             str(PARALLEL / "run-test.sh"),
