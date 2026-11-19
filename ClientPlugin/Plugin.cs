@@ -30,6 +30,8 @@ public class Plugin : IPlugin
 
         var harmony = new Harmony(Name);
         harmony.PatchAll(Assembly.GetExecutingAssembly());
+
+        Game.ModProbe.Listen();
     }
 
     public void Dispose()

@@ -157,6 +157,14 @@ The client can't see it in the Store's items. Two sources, in this order:
 - Enabled. Off brings the vanilla Store screen back without disabling the plugin.
 - Merge lots into their item. The checkbox on the screen.
 
+## Mods with their own Store screen
+
+A server's mod may draw a Store screen of its own for players without the plugin, as the
+Octahedron world's mod does. A mod can't see plugins, so just before it would open its
+screen it sends the local mod message `0x4253544F52455052` ("BSTOREPR"). While the plugin's
+screen is on and would open (enabled, no gamepad), the plugin answers at once with
+`0x4253544F52454F4E` ("BSTOREON"), and the mod leaves F to the plugin.
+
 ## Out of scope
 
 - The Store's administration: offers, orders and their prices stay on the game's own screen.
