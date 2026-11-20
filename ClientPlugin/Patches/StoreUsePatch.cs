@@ -2,7 +2,9 @@ using ClientPlugin.Gui;
 using HarmonyLib;
 using Sandbox.Game.Entities.Blocks;
 using Sandbox.Game.Entities.Character;
+using Sandbox.Game.Gui;
 using Sandbox.Game.World;
+using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game.Entities.UseObjects;
 using VRage.Game;
 using VRage.Game.Entity.UseObject;
@@ -29,6 +31,9 @@ public static class StoreUsePatch
             || actionEnum != UseActionEnum.Manipulate
             || MyInput.Static.IsJoystickLastUsed
         )
+            return true;
+        // A server mod that opened its own Store screen on the F press takes precedence
+        if (!(MyScreenManager.GetScreenWithFocus() is MyGuiScreenGamePlay))
             return true;
         if (
             !(userEntity is MyCharacter character)

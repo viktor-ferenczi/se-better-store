@@ -157,6 +157,14 @@ The client can't see it in the Store's items. Two sources, in this order:
 - Enabled. Off brings the vanilla Store screen back without disabling the plugin.
 - Merge lots into their item. The checkbox on the screen.
 
+## Mods with their own Store screen
+
+A server's mod may draw a Store screen of its own, as the Octahedron world's mod does, because
+the server customized its Store. The mod's screen wins. The plugin opens its screen from
+`MyUseObjectStoreBlock.Use`, which the game calls when F is let go. A mod that opens its screen
+while F is still down takes that release, so `Use` never runs. If a screen other than the
+gameplay screen has focus when `Use` runs anyway, the plugin stands aside and leaves it to the game.
+
 ## Out of scope
 
 - The Store's administration: offers, orders and their prices stay on the game's own screen.

@@ -29,6 +29,7 @@ screen of the Store block with one that is quicker to trade on.
 
 Store owners still manage their Store on the game's own screen, behind the Administration button.
 Disable the plugin to get the vanilla Store screen back.
+A server mod that opens its own Store screen on F takes precedence.
 
 ## Bug reports
 
