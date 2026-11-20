@@ -159,11 +159,11 @@ The client can't see it in the Store's items. Two sources, in this order:
 
 ## Mods with their own Store screen
 
-A server's mod may draw a Store screen of its own for players without the plugin, as the
-Octahedron world's mod does. A mod can't see plugins, so just before it would open its
-screen it sends the local mod message `0x4253544F52455052` ("BSTOREPR"). While the plugin's
-screen is on and would open (enabled, no gamepad), the plugin answers at once with
-`0x4253544F52454F4E` ("BSTOREON"), and the mod leaves F to the plugin.
+A server's mod may draw a Store screen of its own, as the Octahedron world's mod does, because
+the server customized its Store. The mod's screen wins. The plugin opens its screen from
+`MyUseObjectStoreBlock.Use`, which the game calls when F is let go. A mod that opens its screen
+while F is still down takes that release, so `Use` never runs. If a screen other than the
+gameplay screen has focus when `Use` runs anyway, the plugin stands aside and leaves it to the game.
 
 ## Out of scope
 
