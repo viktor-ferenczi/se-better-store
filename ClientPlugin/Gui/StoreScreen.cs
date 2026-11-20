@@ -234,7 +234,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             ColumnsCount = 5,
             VisibleRowsCount = TableRows,
         };
-        table.SetCustomColumnWidths(new[] { 0.05f, 0.3f, 0.35f, 0.15f, 0.15f });
+        table.SetCustomColumnWidths(new[] { 0.05f, 0.31f, 0.3f, 0.17f, 0.17f });
         for (int column = 2; column < 5; column++)
         {
             table.SetColumnAlign(column, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
