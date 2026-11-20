@@ -605,8 +605,12 @@ internal sealed class StoreScreen : MyGuiScreenBase
                 new MyGuiControlTable.Cell(
                     lots
                         ? $"{listing.Name} ({LotName(entry.LotRow.Lot, listing.Unit)})"
-                        : listing.Name
+                        : listing.Name,
+                    toolTip: listing.Name
                 )
+                {
+                    IsAutoScaleEnabled = true,
+                }
             );
             row.AddCell(RightCell(PriceText(entry, listing, lots), price));
             row.AddCell(
@@ -654,6 +658,8 @@ internal sealed class StoreScreen : MyGuiScreenBase
         )
         {
             Margin = new Thickness(CellMargin, 0f, 0f, 0f),
+            // Text too long for its column shrinks a little, then ends in "..."
+            IsAutoScaleEnabled = true,
         };
 
     private static string KeyOf(Entry entry) => $"{entry.Item}|{entry.Unit?.Id}|{entry.LotRow?.Id}";
