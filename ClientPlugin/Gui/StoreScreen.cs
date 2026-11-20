@@ -234,7 +234,7 @@ internal sealed class StoreScreen : MyGuiScreenBase
             ColumnsCount = 5,
             VisibleRowsCount = TableRows,
         };
-        table.SetCustomColumnWidths(new[] { 0.05f, 0.235f, 0.295f, 0.21f, 0.21f });
+        table.SetCustomColumnWidths(new[] { 0.05f, 0.3f, 0.35f, 0.15f, 0.15f });
         for (int column = 2; column < 5; column++)
         {
             table.SetColumnAlign(column, MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER);
@@ -692,6 +692,8 @@ internal sealed class StoreScreen : MyGuiScreenBase
                 lots ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /lot"
                 : listing.Unit == Unit.Kg && entry.LotRow.Lot == 1000
                     ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /t"
+                : entry.LotRow.Lot % 1000 == 0
+                    ? $"{Amounts.Number(entry.LotRow.ShownPrice)} /{Amounts.Number(entry.LotRow.Lot / 1000)}k"
                 : $"{Amounts.Number(entry.LotRow.ShownPrice)} /{Amounts.Number(entry.LotRow.Lot)}"
             );
         return string.Join(" · ", parts);
